@@ -1,0 +1,166 @@
+{
+    "name": "TipMiner v3 - Cookie Bypass",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "seconds",
+                            "seconds": 30
+                        }
+                    ]
+                }
+            },
+            "id": "schedule",
+            "name": "Schedule Trigger",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                380,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.tipminer.com/api/v3/history/aviator/0194b476-2c3a-7548-8b2a-222e76916592?limit=200",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Cookie",
+                            "value": "next-auth.session-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uIjoiMDE5YzRhNzYtNDA1NC03MWRmLWJlYjEtODQ3NjdmYmVjYTM2IiwiYWNjb3VudCI6eyJ1dWlkIjoiMDE5OWE1ZDAtZDViNS03NDIzLWE1ODEtYWMyNDY5MDRiODlmIiwibmFtZSI6IkplYW4gT2xpdmVpcmEgU2FudG9zIiwidHlwZSI6IkRFRkFVTFQiLCJlbWFpbCI6ImoubWt0c2FudG9zQGdtYWlsLmNvbSIsInBob25lIjoiKzU1MzE5OTQ5MDE0MzgiLCJhdmF0YXIiOm51bGwsIm9yaWdpbiI6bnVsbCwidmVyc2lvbiI6MSwibGVnYWN5SWQiOiI2MzI5YmEzMTFkYTkwZjdjNTIiLCJ0aW1lc3RhbXBzIjp7Imluc2VydCI6IjIwMjUtMTAtMDJUMTY6NDU6NTAuOTAxWiIsInVwZGF0ZSI6IjIwMjYtMDEtMTRUMTY6NTc6NDUuNjIzWiJ9LCJjb25maXJtYXRpb24iOiIyMDI2LTAxLTE0VDE2OjU3OjQ1LjYyM1oifSwiZmVhdHVyZXMiOnsiYm90IjowLCJyb3VuZHMiOjIwMDAsImdyb3VwQm90IjowLCJ2aXAiOmZhbHNlLCJub0FkIjpmYWxzZSwicmFua2luZyI6ZmFsc2UsInN1cHBvcnQiOmZhbHNlLCJ2YWxpZGF0b3IiOmZhbHNlLCJhbmFseXRpY2FsTW9kZSI6ZmFsc2UsInBhc3RDb2xvcnNCeURheUFuZEhvdXIiOmZhbHNlfSwiaWF0IjoxNzcwNzc1Nzg5LCJleHAiOjE3NzMzNjc3ODl9.xFZHY4MSfgZfQEV4E96GiSLr4qjYx3wwNJbs7GEqLwY"
+                        },
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        },
+                        {
+                            "name": "Referer",
+                            "value": "https://www.tipminer.com/"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "get-bravobet",
+            "name": "3A. Get Bravobet",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                600,
+                140
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.tipminer.com/api/v3/history/aviator/0194b472-fc9b-7482-91a4-5ad870f52983?limit=200",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Cookie",
+                            "value": "next-auth.session-token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzZXNzaW9uIjoiMDE5YzRhNzYtNDA1NC03MWRmLWJlYjEtODQ3NjdmYmVjYTM2IiwiYWNjb3VudCI6eyJ1dWlkIjoiMDE5OWE1ZDAtZDViNS03NDIzLWE1ODEtYWMyNDY5MDRiODlmIiwibmFtZSI6IkplYW4gT2xpdmVpcmEgU2FudG9zIiwidHlwZSI6IkRFRkFVTFQiLCJlbWFpbCI6ImoubWt0c2FudG9zQGdtYWlsLmNvbSIsInBob25lIjoiKzU1MzE5OTQ5MDE0MzgiLCJhdmF0YXIiOm51bGwsIm9yaWdpbiI6bnVsbCwidmVyc2lvbiI6MSwibGVnYWN5SWQiOiI2MzI5YmEzMTFkYTkwZjdjNTIiLCJ0aW1lc3RhbXBzIjp7Imluc2VydCI6IjIwMjUtMTAtMDJUMTY6NDU6NTAuOTAxWiIsInVwZGF0ZSI6IjIwMjYtMDEtMTRUMTY6NTc6NDUuNjIzWiJ9LCJjb25maXJtYXRpb24iOiIyMDI2LTAxLTE0VDE2OjU3OjQ1LjYyM1oifSwiZmVhdHVyZXMiOnsiYm90IjowLCJyb3VuZHMiOjIwMDAsImdyb3VwQm90IjowLCJ2aXAiOmZhbHNlLCJub0FkIjpmYWxzZSwicmFua2luZyI6ZmFsc2UsInN1cHBvcnQiOmZhbHNlLCJ2YWxpZGF0b3IiOmZhbHNlLCJhbmFseXRpY2FsTW9kZSI6ZmFsc2UsInBhc3RDb2xvcnNCeURheUFuZEhvdXIiOmZhbHNlfSwiaWF0IjoxNzcwNzc1Nzg5LCJleHAiOjE3NzMzNjc3ODl9.xFZHY4MSfgZfQEV4E96GiSLr4qjYx3wwNJbs7GEqLwY"
+                        },
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        },
+                        {
+                            "name": "Referer",
+                            "value": "https://www.tipminer.com/"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "get-betou",
+            "name": "3B. Get Betou (Superbet)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                600,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Merge both inputs\nconst bravobetItems = $items(\"3A. Get Bravobet\");\nconst betouItems = $items(\"3B. Get Betou (Superbet)\");\n\nconst cleanData = [];\n\n// Process Bravobet (items[0].json usually contains the array)\nif (bravobetItems[0] && bravobetItems[0].json) {\n  const list = Array.isArray(bravobetItems[0].json) ? bravobetItems[0].json : (bravobetItems[0].json.items || []);\n  list.slice(0, 5).forEach(item => {\n    cleanData.push({\n      multiplier: parseFloat(item.multiplier || item.value || 1.00),\n      platform: 'bravobet',\n      round_time: item.updated_at || new Date().toISOString()\n    });\n  });\n}\n\n// Process Betou as Superbet\nif (betouItems[0] && betouItems[0].json) {\n  const list = Array.isArray(betouItems[0].json) ? betouItems[0].json : (betouItems[0].json.items || []);\n  list.slice(0, 5).forEach(item => {\n    cleanData.push({\n      multiplier: parseFloat(item.multiplier || item.value || 1.00),\n      platform: 'superbet',\n      round_time: item.updated_at || new Date().toISOString()\n    });\n  });\n}\n\nreturn cleanData;"
+            },
+            "id": "merge-data",
+            "name": "Merge & Label",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                820,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "table": "crash_history",
+                "columns": "multiplier, platform, round_time",
+                "operation": "insert"
+            },
+            "id": "save-supabase",
+            "name": "Save to Supabase",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1040,
+                240
+            ]
+        }
+    ],
+    "connections": {
+        "Schedule Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "3A. Get Bravobet",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "3B. Get Betou (Superbet)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "3A. Get Bravobet": {
+            "main": [
+                [
+                    {
+                        "node": "Merge & Label",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "3B. Get Betou (Superbet)": {
+            "main": [
+                [
+                    {
+                        "node": "Merge & Label",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Merge & Label": {
+            "main": [
+                [
+                    {
+                        "node": "Save to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

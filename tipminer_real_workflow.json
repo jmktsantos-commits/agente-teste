@@ -1,0 +1,289 @@
+{
+    "name": "TipMiner Multi-Platform Scraper",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "seconds",
+                            "seconds": 30
+                        }
+                    ]
+                }
+            },
+            "id": "schedule",
+            "name": "Schedule Trigger",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.1,
+            "position": [
+                380,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.tipminer.com/api/auth/csrf",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        },
+                        {
+                            "name": "Accept",
+                            "value": "*/*"
+                        },
+                        {
+                            "name": "Accept-Language",
+                            "value": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
+                        },
+                        {
+                            "name": "Referer",
+                            "value": "https://www.tipminer.com/"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "get-csrf",
+            "name": "1. Get CSRF",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                600,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://www.tipminer.com/api/auth/callback/credentials",
+                "sendBody": true,
+                "contentType": "form-urlencoded",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "email",
+                            "value": "j.mktsantos@gmail.com"
+                        },
+                        {
+                            "name": "password",
+                            "value": "jeolsa9214"
+                        },
+                        {
+                            "name": "csrfToken",
+                            "value": "={{ $json.csrfToken }}"
+                        },
+                        {
+                            "name": "json",
+                            "value": "true"
+                        },
+                        {
+                            "name": "redirect",
+                            "value": "false"
+                        }
+                    ]
+                },
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Cookie",
+                            "value": "={{ $node[\"1. Get CSRF\"].response.headers[\"set-cookie\"] ? $node[\"1. Get CSRF\"].response.headers[\"set-cookie\"].join(';') : '' }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/x-www-form-urlencoded"
+                        },
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        },
+                        {
+                            "name": "Origin",
+                            "value": "https://www.tipminer.com"
+                        },
+                        {
+                            "name": "Referer",
+                            "value": "https://www.tipminer.com/"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "login",
+            "name": "2. Login",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                820,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.tipminer.com/api/v3/history/aviator/0194b476-2c3a-7548-8b2a-222e76916592?limit=200",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Cookie",
+                            "value": "={{ $node[\"2. Login\"].response.headers[\"set-cookie\"] ? $node[\"2. Login\"].response.headers[\"set-cookie\"].join(';') : '' }}"
+                        },
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        },
+                        {
+                            "name": "Referer",
+                            "value": "https://www.tipminer.com/"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "get-bravobet",
+            "name": "3A. Get Bravobet",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1040,
+                140
+            ]
+        },
+        {
+            "parameters": {
+                "url": "https://www.tipminer.com/api/v3/history/aviator/0194b472-fc9b-7482-91a4-5ad870f52983?limit=200",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Cookie",
+                            "value": "={{ $node[\"2. Login\"].response.headers[\"set-cookie\"] ? $node[\"2. Login\"].response.headers[\"set-cookie\"].join(';') : '' }}"
+                        },
+                        {
+                            "name": "User-Agent",
+                            "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        },
+                        {
+                            "name": "Referer",
+                            "value": "https://www.tipminer.com/"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "get-betou",
+            "name": "3B. Get Betou (Superbet)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1040,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Merge both inputs\nconst bravobetItems = $items(\"3A. Get Bravobet\");\nconst betouItems = $items(\"3B. Get Betou (Superbet)\");\n\nconst cleanData = [];\n\n// Process Bravobet (items[0].json usually contains the array)\nif (bravobetItems[0] && bravobetItems[0].json) {\n  const list = Array.isArray(bravobetItems[0].json) ? bravobetItems[0].json : (bravobetItems[0].json.items || []);\n  list.slice(0, 5).forEach(item => {\n    cleanData.push({\n      multiplier: parseFloat(item.multiplier || item.value || 1.00),\n      platform: 'bravobet',\n      round_time: item.updated_at || new Date().toISOString()\n    });\n  });\n}\n\n// Process Betou as Superbet\nif (betouItems[0] && betouItems[0].json) {\n  const list = Array.isArray(betouItems[0].json) ? betouItems[0].json : (betouItems[0].json.items || []);\n  list.slice(0, 5).forEach(item => {\n    cleanData.push({\n      multiplier: parseFloat(item.multiplier || item.value || 1.00),\n      platform: 'superbet',\n      round_time: item.updated_at || new Date().toISOString()\n    });\n  });\n}\n\nreturn cleanData;"
+            },
+            "id": "merge-data",
+            "name": "Merge & Label",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1260,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "table": "crash_history",
+                "columns": "multiplier, platform, round_time",
+                "operation": "insert"
+            },
+            "id": "save-supabase",
+            "name": "Save to Supabase",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1480,
+                240
+            ]
+        }
+    ],
+    "connections": {
+        "Schedule Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "1. Get CSRF",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "1. Get CSRF": {
+            "main": [
+                [
+                    {
+                        "node": "2. Login",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "2. Login": {
+            "main": [
+                [
+                    {
+                        "node": "3A. Get Bravobet",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "3B. Get Betou (Superbet)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "3A. Get Bravobet": {
+            "main": [
+                [
+                    {
+                        "node": "Merge & Label",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "3B. Get Betou (Superbet)": {
+            "main": [
+                [
+                    {
+                        "node": "Merge & Label",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Merge & Label": {
+            "main": [
+                [
+                    {
+                        "node": "Save to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
