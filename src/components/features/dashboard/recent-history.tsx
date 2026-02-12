@@ -5,7 +5,6 @@ import { createClient } from "@/utils/supabase/client"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { History } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 type HistoryItem = {
     id: number
@@ -77,29 +76,29 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
     }
 
     return (
-        <Card className="bg-slate-900/60 backdrop-blur-xl border-white/10 text-white shadow-xl">
-            <CardHeader className="pb-4 border-b border-white/5">
+        <Card className="bg-slate-900 border-slate-800 text-white">
+            <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                     <History className="w-5 h-5 text-slate-400" />
-                    Histórico - <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500 uppercase">{selectedPlatform}</span>
-                    <span className="text-[10px] font-bold text-slate-400 ml-auto bg-white/5 border border-white/10 px-2 py-1 rounded-full">200 VELAS</span>
+                    Histórico - {selectedPlatform === 'bravobet' ? 'Bravobet' : 'Superbet'}
+                    <span className="text-xs font-normal text-slate-500 ml-auto bg-slate-800 px-2 py-1 rounded">200 velas</span>
                 </CardTitle>
             </CardHeader>
-            <CardContent className="pt-4">
-                <div className="pr-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+            <CardContent>
+                <div className="pr-2">
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
                         {history.map((row) => (
                             <div
                                 key={row.id}
-                                className={cn(
-                                    "relative flex flex-col items-center justify-center p-2 rounded-lg border transition-all duration-300 hover:scale-105 hover:z-10 cursor-default",
-                                    getMultiplierColor(row.multiplier)
-                                )}
+                                className={`
+                                    relative flex flex-col items-center justify-center p-2 rounded-md border transition-all duration-300
+                                    ${getMultiplierColor(row.multiplier)}
+                                `}
                             >
-                                <span className="text-sm font-black drop-shadow-sm">
+                                <span className="text-sm font-bold">
                                     {row.multiplier.toFixed(2)}x
                                 </span>
-                                <span className="text-[9px] opacity-80 font-mono font-medium">
+                                <span className="text-[9px] opacity-70 font-mono">
                                     {formatTimeSafe(row.round_time)}
                                 </span>
                             </div>

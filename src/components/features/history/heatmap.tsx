@@ -9,17 +9,13 @@ const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
 const hours = Array.from({ length: 24 }, (_, i) => i)
 
 export function Heatmap() {
-    // Generate deterministic intensity for demo
+    // Generate random intensity for demo
     const getIntensity = (day: number, hour: number) => {
-        // Pseudo-random based on day and hour
-        const seed = day * 24 + hour
-        const base = (Math.sin(seed) + 1) / 2
-
         // Higher intensity overlapping with "peak" hours (e.g., 18-22h)
+        const base = Math.random()
         const isPeak = hour >= 18 && hour <= 22
-        const intensity = isPeak ? base + 0.3 : base * 0.7
-
-        return Math.min(1, Math.max(0, intensity))
+        const intensity = isPeak ? base + 0.5 : base
+        return Math.min(1, intensity)
     }
 
     const getColor = (intensity: number) => {

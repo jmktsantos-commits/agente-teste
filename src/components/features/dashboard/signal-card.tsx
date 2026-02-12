@@ -139,7 +139,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
             transition={{ duration: 0.5 }}
             className="w-full space-y-4"
         >
-            <Card className="w-full bg-slate-900/60 backdrop-blur-xl border-white/10 text-white overflow-hidden relative shadow-2xl shadow-purple-900/20">
+            <Card className="w-full bg-slate-900 border-slate-800 text-white overflow-hidden relative shadow-2xl shadow-purple-900/10">
                 <div className={`absolute top-0 left-0 w-1 h-full ${isWindowActive ? 'bg-pink-500' : 'bg-slate-600'}`} />
 
                 <CardContent className="p-6">

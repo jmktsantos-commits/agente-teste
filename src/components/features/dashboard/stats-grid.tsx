@@ -124,89 +124,78 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
 
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-white/5 text-white hover:border-pink-500/20 transition-all">
+            <Card className="bg-slate-900 border-slate-800 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-slate-400">
                         Maior do Dia
                     </CardTitle>
-                    <div className="p-2 bg-pink-500/10 rounded-lg">
-                        <TrendingUp className="h-4 w-4 text-pink-500" />
-                    </div>
+                    <TrendingUp className="h-4 w-4 text-pink-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-black text-white">{stats.maxToday.toFixed(2)}x</div>
-                    <p className="text-xs text-slate-400 mt-1 font-mono">
+                    <div className="text-2xl font-bold text-pink-500">{stats.maxToday.toFixed(2)}x</div>
+                    <p className="text-xs text-muted-foreground">
                         {formatTime(stats.maxTime)}
                     </p>
                 </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-white/5 text-white hover:border-pink-500/20 transition-all">
+            <Card className="bg-slate-900 border-slate-800 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-slate-400">
                         Rosas (10x+)
                     </CardTitle>
-                    <div className="p-2 bg-pink-500/10 rounded-lg">
-                        <Zap className="h-4 w-4 text-pink-400" />
-                    </div>
+                    <Zap className="h-4 w-4 text-pink-400" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-black text-pink-400">{stats.pinkCount}</div>
-                    <p className="text-xs text-slate-400 mt-1">
-                        <span className="text-pink-400 font-bold">{stats.pinkPercent.toFixed(1)}%</span> das últimas 200
+                    <div className="text-2xl font-bold text-pink-400">{stats.pinkCount}</div>
+                    <p className="text-xs text-muted-foreground">
+                        {stats.pinkPercent.toFixed(1)}% das últimas 200
                     </p>
                 </CardContent>
             </Card>
 
             {/* Novo Card: Minuto Pagador */}
-            <Card className="bg-gradient-to-br from-pink-900/20 to-purple-900/20 border-pink-500/30 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-pink-500/5 animate-pulse" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
-                    <CardTitle className="text-sm font-bold text-pink-200">
+            <Card className="bg-slate-900 border-slate-800 text-white border-pink-500/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-400">
                         Minuto Pagador
                     </CardTitle>
-                    <div className="p-2 bg-pink-500/20 rounded-lg">
-                        <Clock className="h-4 w-4 text-pink-400 animate-pulse" />
-                    </div>
+                    <Clock className="h-4 w-4 text-pink-500 animate-pulse" />
                 </CardHeader>
-                <CardContent className="relative">
-                    <div className="text-2xl font-black text-pink-400 drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]">
+                <CardContent>
+                    <div className="text-2xl font-bold text-pink-500">
                         {stats.bestPinkMinute !== null ? `Final ${stats.bestPinkMinute}` : '--'}
                     </div>
-                    <p className="text-[10px] text-pink-300/70 uppercase mt-1 font-semibold">
-                        Maior Frequência Rosa
+                    <p className="text-[10px] text-muted-foreground uppercase">
+                        Frequência Rosa (200 velas)
                     </p>
                 </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-white/5 text-white hover:border-purple-500/20 transition-all">
+            <Card className="bg-slate-900 border-slate-800 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-slate-400">
                         Vela Roxa (2x-10x)
                     </CardTitle>
-                    <div className="p-2 bg-purple-500/10 rounded-lg">
-                        <Sparkles className="h-4 w-4 text-purple-400" />
-                    </div>
+                    <Sparkles className="h-4 w-4 text-purple-400" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-black text-purple-400">{stats.purpleCount}</div>
-                    <p className="text-xs text-slate-400 mt-1">
-                        <span className="text-purple-400 font-bold">{stats.purplePercent.toFixed(1)}%</span> das últimas 200
+                    <div className="text-2xl font-bold text-purple-400">{stats.purpleCount}</div>
+                    <p className="text-xs text-muted-foreground">
+                        {stats.purplePercent.toFixed(1)}% das últimas 200
                     </p>
                 </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-slate-900 to-slate-800 border-white/5 text-white hover:border-blue-500/20 transition-all">
+            <Card className="bg-slate-900 border-slate-800 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-slate-400">
                         Vela Azul (&lt;2x)
                     </CardTitle>
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
-                        <Activity className="h-4 w-4 text-blue-400" />
-                    </div>
+                    <Activity className="h-4 w-4 text-blue-400" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-black text-blue-400">{stats.blueCount}</div>
-                    <p className="text-xs text-slate-400 mt-1">
-                        <span className="text-blue-400 font-bold">{stats.bluePercent.toFixed(1)}%</span> das últimas 200
+                    <div className="text-2xl font-bold text-blue-400">{stats.blueCount}</div>
+                    <p className="text-xs text-muted-foreground">
+                        {stats.bluePercent.toFixed(1)}% das últimas 200
                     </p>
                 </CardContent>
             </Card>
