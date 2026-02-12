@@ -6,9 +6,10 @@ import { RecentHistoryTable } from "@/components/features/dashboard/recent-histo
 import { SignalCard } from "@/components/features/dashboard/signal-card"
 import { StatsGrid } from "@/components/features/dashboard/stats-grid"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { Platform } from "@/lib/prediction-engine"
 
 export default function DashboardPage() {
-    const [selectedPlatform, setSelectedPlatform] = useState<string>("bravobet")
+    const [selectedPlatform, setSelectedPlatform] = useState<Platform>("bravobet")
 
     return (
         <div className="space-y-6">
@@ -18,7 +19,7 @@ export default function DashboardPage() {
                     Plataforma de Análise
                 </h1>
 
-                <Tabs defaultValue="bravobet" className="w-full max-w-[400px]" onValueChange={setSelectedPlatform}>
+                <Tabs defaultValue="bravobet" className="w-full max-w-[400px]" onValueChange={(v: string) => setSelectedPlatform(v as Platform)}>
                     <TabsList className="grid w-full grid-cols-2 bg-slate-900 border border-slate-800 h-12 p-1">
                         <TabsTrigger value="bravobet" className="text-sm font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white h-full">BRAVOBET</TabsTrigger>
                         <TabsTrigger value="superbet" className="text-sm font-bold data-[state=active]:bg-pink-600 data-[state=active]:text-white h-full">SUPERBET</TabsTrigger>
