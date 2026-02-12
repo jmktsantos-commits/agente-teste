@@ -50,7 +50,12 @@ export function PredictionCard({ selectedPlatform }: PredictionCardProps) {
         if (!prediction?.expires_at) return
 
         const interval = setInterval(() => {
-            const remaining = new Date(prediction.expires_at).getTime() - Date.now()
+            const expiry = new Date(prediction.expires_at).getTime()
+            if (isNaN(expiry)) {
+                setTimeRemaining(0)
+                return
+            }
+            const remaining = expiry - Date.now()
             setTimeRemaining(Math.max(0, Math.floor(remaining / 1000)))
         }, 1000)
 
@@ -130,18 +135,31 @@ export function PredictionCard({ selectedPlatform }: PredictionCardProps) {
     const config = getPredictionConfig()
     const Icon = config.icon
     const confidencePercent = Math.round(prediction.confidence * 100)
+    const suggestedTimes = prediction.suggested_range?.split(',').map(t => t.trim()).filter(t => t !== "") || []
+
+    const formatTimeSafe = (dateStr?: string) => {
+        if (!dateStr) return null
+        const d = new Date(dateStr)
+        return isNaN(d.getTime()) ? null : d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    }
+
+    const nextAnalysisTime = formatTimeSafe(prediction.analysis_data?.next_analysis_at) ||
+        formatTimeSafe(prediction.expires_at) ||
+        '--:--'
 
     return (
-        <Card className={`bg-slate-900 border-2 ${config.borderColor}`}>
+        <Card className={`bg-slate-900 border-2 ${config.borderColor} relative overflow-hidden`}>
+            <div className={`absolute top-0 right-0 p-2 z-10 mr-4 mt-2`}>
+                <span className="text-[10px] text-slate-500 font-mono">
+                    Próxima análise às {nextAnalysisTime}
+                </span>
+            </div>
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-white">
                         <Icon className={`w-6 h-6 ${config.iconColor}`} />
-                        Sinal de Previsão
+                        Possibilidade de Velas Altas
                     </CardTitle>
-                    <Badge variant={config.badgeVariant} className="text-xs">
-                        {config.label}
-                    </Badge>
                 </div>
                 <CardDescription className="text-slate-400">
                     Análise baseada nas últimas 200 rodadas
@@ -151,7 +169,7 @@ export function PredictionCard({ selectedPlatform }: PredictionCardProps) {
                 {/* Confiança */}
                 <div className={`rounded-lg p-4 ${config.bgColor}`}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-slate-300">Nível de Confiança</span>
+                        <span className="text-sm text-slate-300">Margem de Assertividade</span>
                         <span className={`text-2xl font-bold ${config.iconColor}`}>
                             {confidencePercent}%
                         </span>
@@ -159,52 +177,42 @@ export function PredictionCard({ selectedPlatform }: PredictionCardProps) {
                     <Progress value={confidencePercent} className="h-2" />
                 </div>
 
-                {/* Sugestão de multiplicador */}
-                {prediction.suggested_range !== 'Evitar apostas' && (
-                    <div className="flex items-center justify-between bg-slate-800 rounded-lg p-3">
-                        <div className="flex items-center gap-2">
-                            <Target className="w-4 h-4 text-blue-400" />
-                            <span className="text-sm text-slate-300">Multiplicadores Sugeridos</span>
+                {/* Sugestão de multiplicador / Horários */}
+                {suggestedTimes.length > 0 && prediction.suggested_range !== 'Evitar apostas' && (
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-slate-300">
+                            <Target className="w-4 h-4 text-pink-500" />
+                            <span className="font-bold text-pink-500 uppercase tracking-tighter">Janelas Confirmadas (10.00x+)</span>
                         </div>
-                        <span className="font-bold text-blue-400">{prediction.suggested_range}</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {suggestedTimes.map((time, idx) => (
+                                <div key={idx} className="bg-slate-800 p-2 rounded border border-slate-700 flex items-center justify-center gap-2 hover:border-pink-500/30 transition-colors">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-pink-500" />
+                                    <span className="font-bold text-white font-mono">{time}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
                 {/* Razão */}
                 <div className="space-y-2">
-                    <div className="text-sm font-medium text-slate-300">Análise:</div>
-                    <div className="text-sm text-slate-400 bg-slate-800 rounded-lg p-3">
-                        {prediction.reason}
+                    <div className="text-sm font-medium text-slate-300">Regras De Entrada:</div>
+                    <div className="text-[11px] text-slate-400 bg-slate-800 rounded-lg p-3">
+                        <ul className="space-y-1 list-disc list-inside italic">
+                            <li>Fazer proteção em 2.1x com valor maior</li>
+                            <li>Analisar Teto de Velas</li>
+                            <li>Analisar se saiu um multiplicador próximo ao horário</li>
+                            <li>Entrar 1 min antes ou depois, somente se tiver dando pelo menos 2x</li>
+                        </ul>
                     </div>
                 </div>
-
-                {/* Estatísticas */}
-                {prediction.analysis_data && (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="bg-slate-800 rounded p-2">
-                            <div className="text-slate-500">Velas Baixas Seguidas</div>
-                            <div className="text-white font-bold">{prediction.analysis_data.low_streak}</div>
-                        </div>
-                        <div className="bg-slate-800 rounded p-2">
-                            <div className="text-slate-500">Tempo Sem Alta</div>
-                            <div className="text-white font-bold">{prediction.analysis_data.minutes_since_high}min</div>
-                        </div>
-                        <div className="bg-slate-800 rounded p-2">
-                            <div className="text-slate-500">Média Atual</div>
-                            <div className="text-white font-bold">{prediction.analysis_data.avg_multiplier}x</div>
-                        </div>
-                        <div className="bg-slate-800 rounded p-2">
-                            <div className="text-slate-500">Alta (10x+)</div>
-                            <div className="text-white font-bold">{prediction.analysis_data.distribution['10x+']}</div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Tempo restante */}
                 <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-800 pt-3">
                     <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>Próxima análise:</span>
+                        <span>Contagem regressiva:</span>
                     </div>
                     <span className="font-mono">{formatTime(timeRemaining)}</span>
                 </div>

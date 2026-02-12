@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/client'
 
-export type PredictionType = 'WAIT_HIGH' | 'NORMAL' | 'CAUTION'
+export type PredictionType = 'WAIT_HIGH' | 'NORMAL' | 'CAUTION' | 'IA_MATH'
 export type Platform = 'bravobet' | 'superbet'
 
 export interface AnalysisData {
@@ -16,6 +16,7 @@ export interface AnalysisData {
     total_rounds: number
     last_high_multiplier?: number
     last_high_time?: string
+    next_analysis_at?: string
 }
 
 export interface Prediction {
@@ -39,6 +40,24 @@ interface HistoryItem {
 
 export async function generatePrediction(platform: Platform): Promise<Prediction | null> {
     const supabase = createClient()
+
+    // DEDUPLICATION: Check if a prediction was already created in the current hour
+    const now = new Date()
+    const hourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0)
+    const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000)
+
+    const { data: existing } = await supabase
+        .from('predictions')
+        .select('id, created_at')
+        .eq('platform', platform)
+        .gte('created_at', hourStart.toISOString())
+        .lt('created_at', hourEnd.toISOString())
+        .limit(1)
+
+    if (existing && existing.length > 0) {
+        console.log(`[DEDUP] Prediction already exists for ${platform} at hour ${now.getHours()}:00`)
+        return null
+    }
 
     // Buscar últimas 200 rodadas
     const { data: history, error } = await supabase
@@ -89,9 +108,14 @@ function analyzePatterns(history: HistoryItem[]): AnalysisData {
     // 2. Tempo desde última vela alta (>=5x)
     const highMultipliers = history.filter(h => h.multiplier >= 5.0)
     const lastHigh = highMultipliers[0]
-    const minutesSinceHigh = lastHigh
-        ? (Date.now() - new Date(lastHigh.round_time).getTime()) / 60000
-        : 999
+
+    let minutesSinceHigh = 999
+    if (lastHigh && lastHigh.round_time) {
+        const lastHighTime = new Date(lastHigh.round_time).getTime()
+        if (!isNaN(lastHighTime)) {
+            minutesSinceHigh = (Date.now() - lastHighTime) / 60000
+        }
+    }
 
     // 3. Média dos multiplicadores
     const avgMultiplier = multipliers.reduce((a, b) => a + b, 0) / multipliers.length
@@ -106,8 +130,8 @@ function analyzePatterns(history: HistoryItem[]): AnalysisData {
 
     return {
         low_streak: lowStreak,
-        minutes_since_high: Math.round(minutesSinceHigh),
-        avg_multiplier: Number(avgMultiplier.toFixed(2)),
+        minutes_since_high: Math.max(0, Math.round(minutesSinceHigh)), // Prevent negative or NaN
+        avg_multiplier: isNaN(avgMultiplier) ? 0 : Number(avgMultiplier.toFixed(2)),
         distribution,
         total_rounds: history.length,
         last_high_multiplier: lastHigh?.multiplier,
@@ -155,10 +179,12 @@ function createPrediction(platform: Platform, analysis: AnalysisData): Predictio
     }
 
     // Heurística 4: Distribuição anormal
-    const lowPercentage = (analysis.distribution['1-2x'] / analysis.total_rounds) * 100
-    if (lowPercentage > 65) {
-        confidence += 0.15
-        reasons.push(`${Math.round(lowPercentage)}% são velas baixas`)
+    if (analysis.total_rounds > 0) {
+        const lowPercentage = (analysis.distribution['1-2x'] / analysis.total_rounds) * 100
+        if (lowPercentage > 65) {
+            confidence += 0.15
+            reasons.push(`${Math.round(lowPercentage)}% são velas baixas`)
+        }
     }
 
     // Determinar tipo de previsão
@@ -192,9 +218,76 @@ function createPrediction(platform: Platform, analysis: AnalysisData): Predictio
         suggested_range: suggestedRange,
         reason: reasons.join(', '),
         analysis_data: analysis,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // Expira em 30min
+        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // Expira em 60min
         is_active: true
     }
+}
+
+export async function getRecentPredictions(platform: Platform, limit: number = 3): Promise<Prediction[]> {
+    const supabase = createClient()
+
+    const { data, error } = await supabase
+        .from('predictions')
+        .select('*')
+        .eq('platform', platform)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    if (error) {
+        console.error('[getRecentPredictions] Error fetching predictions:', error)
+        return []
+    }
+
+    console.log(`[getRecentPredictions] Found ${data?.length || 0} predictions for ${platform}`)
+    return (data as Prediction[]) || []
+}
+
+export function getNextAnalysisTime(platform: Platform): Date {
+    // Usar fuso horário de São Paulo
+    const now = new Date()
+    const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const hour = spTime.getHours()
+    const isEvenHour = hour % 2 === 0
+
+    // Regra:
+    // Horas Pares (00, 02, ... 12) -> Bravobet
+    // Horas Ímpares (01, 03, ... 13) -> Superbet
+
+    let nextTime = new Date(now)
+    // Ajustar nextTime mantendo o mesmo desfase do SP time
+
+    // Simplificação: apenas calcular o próximo alvo em SP time e converter de volta se necessário
+    // Mas para display, o frontend usa o objeto Date local do usuário.
+    // O importante é a lógica de par/impar bater com o SP time.
+
+    nextTime.setMinutes(0, 0, 0)
+
+    if (platform === 'bravobet') {
+        if (isEvenHour) {
+            return nextTime
+        } else {
+            nextTime.setHours(nextTime.getHours() + 1)
+            return nextTime
+        }
+    } else { // superbet
+        if (!isEvenHour) {
+            return nextTime
+        } else {
+            nextTime.setHours(nextTime.getHours() + 1)
+            return nextTime
+        }
+    }
+}
+
+export function isPlatformWindowActive(platform: Platform): boolean {
+    // Usar fuso horário de São Paulo para verificação
+    const now = new Date()
+    const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+    const hour = spTime.getHours()
+
+    const isEven = hour % 2 === 0
+    if (platform === 'bravobet') return isEven
+    return !isEven
 }
 
 export async function getActivePrediction(platform: Platform): Promise<Prediction | null> {

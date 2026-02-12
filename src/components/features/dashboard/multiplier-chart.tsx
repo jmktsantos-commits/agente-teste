@@ -12,35 +12,68 @@ import {
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const mockData = Array.from({ length: 20 }, (_, i) => ({
-    time: `${12 + Math.floor(i / 60)}:${(i % 60).toString().padStart(2, "0")}`,
-    value: Math.max(1, (Math.random() * 10 + (Math.random() > 0.9 ? 20 : 0))).toFixed(2),
-}))
+import { createClient } from "@/utils/supabase/client"
 
-export function MultiplierChart() {
-    const [data, setData] = useState(mockData)
+interface MultiplierChartProps {
+    selectedPlatform: string
+}
+
+export function MultiplierChart({ selectedPlatform }: MultiplierChartProps) {
+    const [data, setData] = useState<{ time: string, value: number }[]>([])
+    const supabase = createClient()
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setData((prev) => {
-                const newData = [...prev.slice(1)]
-                const lastTime = prev[prev.length - 1].time
-                const [h, m] = lastTime.split(":").map(Number)
-                let newM = m + 1
-                let newH = h
-                if (newM >= 60) {
-                    newM = 0
-                    newH = (newH + 1) % 24
+        const fetchData = async () => {
+            const { data: history } = await supabase
+                .from('crash_history')
+                .select('multiplier, round_time')
+                .eq('platform', selectedPlatform)
+                .order('round_time', { ascending: false })
+                .limit(20)
+
+            if (history) {
+                const formatted = history.reverse().map(item => ({
+                    time: formatTimeSafe(item.round_time),
+                    value: parseFloat(item.multiplier.toFixed(2))
+                }))
+                setData(formatted)
+            }
+        }
+
+        const formatTimeSafe = (isoString: string) => {
+            if (!isoString) return '--:--'
+            const date = new Date(isoString)
+            if (isNaN(date.getTime())) return '--:--'
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+
+        fetchData()
+
+        // Realtime subscription
+        const channel = supabase
+            .channel(`multiplier_chart_${selectedPlatform}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'crash_history'
+            }, (payload) => {
+                const newItem = payload.new as { platform: string, multiplier: number, round_time: string }
+                if (newItem.platform === selectedPlatform) {
+                    setData(prev => {
+                        const newData = [...prev, {
+                            time: formatTimeSafe(newItem.round_time),
+                            value: parseFloat(newItem.multiplier.toFixed(2))
+                        }]
+                        return newData.slice(-20)
+                    })
                 }
-                newData.push({
-                    time: `${newH}:${newM.toString().padStart(2, "0")}`,
-                    value: Math.max(1, (Math.random() * 10 + (Math.random() > 0.9 ? 20 : 0))).toFixed(2),
-                })
-                return newData
             })
-        }, 5000)
-        return () => clearInterval(interval)
-    }, [])
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [selectedPlatform])
 
     return (
         <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-slate-900 border-slate-800 text-white">

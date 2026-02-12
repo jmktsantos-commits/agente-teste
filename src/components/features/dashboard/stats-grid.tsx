@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { TrendingUp, Zap, Sparkles, Activity } from "lucide-react"
+import { TrendingUp, Zap, Sparkles, Activity, Clock } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 type StatsGridProps = {
@@ -15,6 +15,7 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
         maxTime: '',
         pinkCount: 0,
         pinkPercent: 0,
+        bestPinkMinute: null as number | null,
         purpleCount: 0,
         purplePercent: 0,
         blueCount: 0,
@@ -39,7 +40,7 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
             // 2. Last 200 rounds for percentages
             const { data: last200 } = await supabase
                 .from('crash_history')
-                .select('multiplier')
+                .select('multiplier, round_time')
                 .eq('platform', selectedPlatform)
                 .order('round_time', { ascending: false })
                 .limit(200)
@@ -48,8 +49,30 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
                 const total = last200.length
 
                 // Rosas (10x+)
-                const pinks = last200.filter(d => d.multiplier >= 10).length
-                const pinkPercent = total > 0 ? (pinks / total) * 100 : 0
+                const pinks = last200.filter(d => d.multiplier >= 10)
+                const pinkCount = pinks.length
+                const pinkPercent = total > 0 ? (pinkCount / total) * 100 : 0
+
+                // Cálculo do Minuto Pagador (Pink) - Último dígito do minuto
+                let bestMinute = null
+                if (pinkCount > 0) {
+                    const minuteCounts: Record<number, number> = {}
+                    pinks.forEach(p => {
+                        const date = new Date(p.round_time)
+                        if (!isNaN(date.getTime())) {
+                            const lastDigit = date.getMinutes() % 10
+                            minuteCounts[lastDigit] = (minuteCounts[lastDigit] || 0) + 1
+                        }
+                    })
+
+                    let maxFreq = 0
+                    Object.entries(minuteCounts).forEach(([minute, freq]) => {
+                        if (freq > maxFreq && minute !== "NaN") {
+                            maxFreq = freq
+                            bestMinute = parseInt(minute)
+                        }
+                    })
+                }
 
                 // Vela Roxa (2x-10x)
                 const purples = last200.filter(d => d.multiplier >= 2 && d.multiplier < 10).length
@@ -62,8 +85,9 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
                 setStats({
                     maxToday: maxData?.[0]?.multiplier || 0,
                     maxTime: maxData?.[0]?.round_time || '',
-                    pinkCount: pinks,
+                    pinkCount: pinkCount,
                     pinkPercent,
+                    bestPinkMinute: bestMinute,
                     purpleCount: purples,
                     purplePercent,
                     blueCount: blues,
@@ -94,11 +118,12 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
     const formatTime = (isoString: string) => {
         if (!isoString) return '--:--:--'
         const date = new Date(isoString)
+        if (isNaN(date.getTime())) return '--:--:--'
         return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Card className="bg-slate-900 border-slate-800 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-slate-400">
@@ -127,6 +152,25 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
                     </p>
                 </CardContent>
             </Card>
+
+            {/* Novo Card: Minuto Pagador */}
+            <Card className="bg-slate-900 border-slate-800 text-white border-pink-500/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-400">
+                        Minuto Pagador
+                    </CardTitle>
+                    <Clock className="h-4 w-4 text-pink-500 animate-pulse" />
+                </CardHeader>
+                <CardContent>
+                    <div className="text-2xl font-bold text-pink-500">
+                        {stats.bestPinkMinute !== null ? `Final ${stats.bestPinkMinute}` : '--'}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase">
+                        Frequência Rosa (200 velas)
+                    </p>
+                </CardContent>
+            </Card>
+
             <Card className="bg-slate-900 border-slate-800 text-white">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-slate-400">

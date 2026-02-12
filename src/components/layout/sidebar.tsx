@@ -16,19 +16,19 @@ import {
 
 const routes = [
     {
-        label: "Dashboard",
-        icon: LayoutDashboard,
-        href: "/dashboard",
-        color: "text-sky-500",
-    },
-    {
-        label: "Histórico",
+        label: "Início",
         icon: History,
         href: "/historico",
         color: "text-violet-500",
     },
     {
-        label: "Banca",
+        label: "Histórico + Análises",
+        icon: LayoutDashboard,
+        href: "/dashboard",
+        color: "text-sky-500",
+    },
+    {
+        label: "Gestão de Banca + Gerenciamento",
         icon: Wallet,
         href: "/banca",
         color: "text-pink-700",

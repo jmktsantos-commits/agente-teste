@@ -1,5 +1,6 @@
 "use client"
 
+import { Fragment } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 // Mock 24h x 7d grid
@@ -41,8 +42,8 @@ export function Heatmap() {
                         ))}
 
                         {days.map((day, dayIndex) => (
-                            <>
-                                <div key={day} className="text-xs text-muted-foreground self-center pr-2">
+                            <Fragment key={day}>
+                                <div className="text-xs text-muted-foreground self-center pr-2">
                                     {day}
                                 </div>
                                 {hours.map((h) => (
@@ -52,7 +53,7 @@ export function Heatmap() {
                                         title={`${day} ${h}:00 - Alta probabilidade`}
                                     />
                                 ))}
-                            </>
+                            </Fragment>
                         ))}
                     </div>
                 </div>

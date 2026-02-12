@@ -40,7 +40,7 @@ export default function CasinoPage() {
                         <p className="text-slate-500 text-sm mb-2 pointer-events-auto">
                             Se não carregar, use o botão abaixo
                         </p>
-                        <Button size="sm" variant="secondary" className="pointer-events-auto" onClick={() => window.open(superbetUrl, "_blank")}>
+                        <Button size="sm" variant="secondary" className="pointer-events-auto" onClick={() => window.open("https://brsuperbet.com/registro_7330", "_blank")}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Abrir Superbet
                         </Button>
@@ -58,7 +58,7 @@ export default function CasinoPage() {
                         <p className="text-slate-500 text-sm mb-2 pointer-events-auto">
                             Se não carregar, use o botão abaixo
                         </p>
-                        <Button size="sm" variant="secondary" className="pointer-events-auto" onClick={() => window.open(bravobetUrl, "_blank")}>
+                        <Button size="sm" variant="secondary" className="pointer-events-auto" onClick={() => window.open("https://affiliates.bravo.bet.br/links/?accounts=%2A&register=%2A&btag=1989135_l350155__", "_blank")}>
                             <ExternalLink className="mr-2 h-4 w-4" />
                             Abrir Bravobet
                         </Button>
