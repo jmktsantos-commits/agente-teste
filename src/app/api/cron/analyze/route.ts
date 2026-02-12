@@ -7,10 +7,7 @@ export const maxDuration = 60
 
 /**
  * Cron endpoint to automatically generate predictions every hour
- * Alternates between platforms based on even/odd hour
- * 
- * Even hours (00, 02, 04, ..., 22) → Bravobet
- * Odd hours (01, 03, 05, ..., 23) → Superbet
+ * Analyzes BOTH platforms (Bravobet AND Superbet) in each execution
  */
 export async function GET(request: NextRequest) {
     // Security: Verify cron secret
@@ -27,51 +24,64 @@ export async function GET(request: NextRequest) {
     const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
     const hour = spTime.getHours()
     const minute = spTime.getMinutes()
-    const isEven = hour % 2 === 0
 
-    // Determine which platform to analyze based on hour parity
-    const platform: Platform = isEven ? 'bravobet' : 'superbet'
+    console.log(`[CRON] ${now.toISOString()} | Hour: ${hour}:${minute.toString().padStart(2, '0')} | Analyzing: BOTH platforms`)
 
-    console.log(`[CRON] ${now.toISOString()} | Hour: ${hour}:${minute.toString().padStart(2, '0')} | Analyzing: ${platform}`)
+    // Analyze BOTH platforms simultaneously
+    const platforms: Platform[] = ['bravobet', 'superbet']
 
     try {
-        // Generate prediction for the active platform
-        const prediction = await generatePrediction(platform)
+        const results = await Promise.allSettled(
+            platforms.map(platform => generatePrediction(platform))
+        )
 
-        if (prediction) {
-            console.log(`[CRON] ✅ Prediction created: ${prediction.id} | Type: ${prediction.prediction_type} | Confidence: ${Math.round(prediction.confidence * 100)}%`)
+        const predictions = results.map((result, index) => {
+            const platform = platforms[index]
 
-            return NextResponse.json({
-                success: true,
-                platform,
-                hour,
-                timestamp: now.toISOString(),
-                prediction: {
-                    id: prediction.id,
-                    type: prediction.prediction_type,
-                    confidence: prediction.confidence,
-                    suggested_range: prediction.suggested_range
+            if (result.status === 'fulfilled' && result.value) {
+                const pred = result.value
+                console.log(`[CRON] ✅ ${platform}: Prediction created | ID: ${pred.id} | Type: ${pred.prediction_type} | Confidence: ${Math.round(pred.confidence * 100)}%`)
+
+                return {
+                    platform,
+                    success: true,
+                    prediction: {
+                        id: pred.id,
+                        type: pred.prediction_type,
+                        confidence: pred.confidence,
+                        suggested_range: pred.suggested_range
+                    }
                 }
-            })
-        } else {
-            console.warn(`[CRON] ⚠️ No prediction generated for ${platform}`)
+            } else {
+                const error = result.status === 'rejected' ? result.reason : 'No prediction generated'
+                console.warn(`[CRON] ⚠️ ${platform}: ${error}`)
 
-            return NextResponse.json({
-                success: false,
-                platform,
-                hour,
-                timestamp: now.toISOString(),
-                error: 'No prediction generated (insufficient data or error)'
-            }, { status: 500 })
-        }
+                return {
+                    platform,
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error)
+                }
+            }
+        })
+
+        const successCount = predictions.filter(p => p.success).length
+        const allSuccess = successCount === platforms.length
+
+        return NextResponse.json({
+            success: allSuccess,
+            timestamp: now.toISOString(),
+            hour,
+            platforms: predictions,
+            summary: `${successCount}/${platforms.length} platforms analyzed successfully`
+        }, { status: allSuccess ? 200 : 207 }) // 207 = Multi-Status (partial success)
+
     } catch (error) {
-        console.error('[CRON] ❌ Error generating prediction:', error)
+        console.error('[CRON] ❌ Critical error:', error)
 
         return NextResponse.json({
             success: false,
-            platform,
-            hour,
             timestamp: now.toISOString(),
+            hour,
             error: error instanceof Error ? error.message : 'Unknown error'
         }, { status: 500 })
     }
