@@ -46,7 +46,7 @@ export async function enviarMensagemChat(userId: string, content: string) {
     return res.json();
 }
 
-export async function perguntarSuporte(userId: string, question: string, history: any[]) {
+export async function perguntarSuporte(userId: string, question: string, history: Record<string, unknown>[]) {
     const res = await fetch(`${N8N_URL}/suporte-ia`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

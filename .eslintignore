@@ -1,0 +1,5 @@
+*.js
+*.sql
+node_modules/
+.next/
+public/
