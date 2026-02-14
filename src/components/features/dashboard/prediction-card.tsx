@@ -65,13 +65,8 @@ export function PredictionCard({ selectedPlatform }: PredictionCardProps) {
     async function loadPrediction() {
         setLoading(true)
 
-        // Tentar buscar previsão existente
-        let activePrediction = await getActivePrediction(selectedPlatform)
-
-        // Se não houver, gerar nova
-        if (!activePrediction) {
-            activePrediction = await generatePrediction(selectedPlatform)
-        }
+        // Buscar previsão existente (gerada pelo Railway scraper)
+        const activePrediction = await getActivePrediction(selectedPlatform)
 
         setPrediction(activePrediction)
         setLoading(false)
