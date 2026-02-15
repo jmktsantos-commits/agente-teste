@@ -38,37 +38,117 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
     }, [platform])
 
     useEffect(() => {
-        const next = getNextAnalysisTime(platform)
-        setNextAnalysis(next)
-
-        const countdownInterval = setInterval(() => {
+        const updateCountdown = () => {
             const now = new Date()
-            let targetTime = next.getTime()
+            const minutes = now.getMinutes()
+            const hours = now.getHours()
 
-            // If we're in the current window (diff <= 0), show time to NEXT window (2h later)
-            const diff = targetTime - now.getTime()
-            if (diff <= 0) {
-                targetTime = targetTime + (2 * 60 * 60 * 1000) // Add 2 hours
+            let next = new Date(now)
+            next.setSeconds(0)
+            next.setMilliseconds(0)
+
+            if (platform === 'bravobet') {
+                // Bravobet: always counts to next :00 (top of hour)
+                next.setHours(hours + 1)
+                next.setMinutes(0)
+            } else {
+                // Superbet: counts to next :30
+                if (minutes < 30) {
+                    // Before :30, go to :30 this hour
+                    next.setMinutes(30)
+                } else {
+                    // After :30, go to :30 next hour
+                    next.setHours(hours + 1)
+                    next.setMinutes(30)
+                }
             }
 
-            const finalDiff = targetTime - now.getTime()
-            const hours = Math.floor(finalDiff / (1000 * 60 * 60))
-            const minutes = Math.floor((finalDiff % (1000 * 60 * 60)) / (1000 * 60))
-            const seconds = Math.floor((finalDiff % (1000 * 60)) / 1000)
-            setCountdown(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`)
-        }, 1000)
+            const diff = next.getTime() - now.getTime()
+
+            const h = Math.floor(diff / (1000 * 60 * 60))
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            const s = Math.floor((diff % (1000 * 60)) / 1000)
+
+            setCountdown(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`)
+        }
+
+        updateCountdown() // Initial set
+        const countdownInterval = setInterval(updateCountdown, 1000)
 
         return () => clearInterval(countdownInterval)
     }, [platform])
 
+    // Realtime Subscription
+    useEffect(() => {
+        const supabase = createClient()
+        const channel = supabase
+            .channel('predictions-realtime')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'predictions',
+                    filter: `platform=eq.${platform}`
+                },
+                (payload) => {
+                    console.log('New prediction received:', payload)
+                    loadPrediction()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [platform])
+
     async function loadPrediction() {
+        console.log('[SignalCard] loadPrediction() called for platform:', platform)
         setIsLoading(true)
         const active = await getActivePrediction(platform)
+        console.log('[SignalCard] Active prediction:', active)
         setPrediction(active)
         setIsLoading(false)
 
-        const recent = await getRecentPredictions(platform, 3)
-        setLastPredictions(recent)
+        const recent = await getRecentPredictions(platform, 20)
+        console.log('[SignalCard] Recent predictions count:', recent.length)
+        // Filter out invalid predictions: "Evitar apostas", "Aguardando...", generic ranges, or error status
+        const validRecent = recent
+            .filter(p => {
+                const range = p.suggested_range || ''
+                const hasError = p.analysis_data?.status === 'erro'
+                const isInvalid = range.includes('Evitar apostas') || range.includes('Aguardando')
+                const isGeneric = range === '2x - 4x' || range === '2x - 5x' || range === '2.5x - 6x' || range === '3.5x - 8x'
+                return !hasError && !isInvalid && !isGeneric
+            })
+
+        // Deduplicate by time window: keep only the LATEST prediction per window
+        // Bravobet windows: each hour (:00). Superbet windows: each half-hour (:30)
+        const windowMap = new Map<string, Prediction>()
+        for (const p of validRecent) {
+            const created = new Date(p.created_at || '')
+            const spTime = new Date(created.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
+            const h = spTime.getHours()
+            const m = spTime.getMinutes()
+
+            let windowKey: string
+            if (platform === 'bravobet') {
+                windowKey = `${h.toString().padStart(2, '0')}:00`
+            } else {
+                // Superbet: group by half-hour
+                windowKey = m >= 30 ? `${h.toString().padStart(2, '0')}:30` : `${(h === 0 ? 23 : h - 1).toString().padStart(2, '0')}:30`
+            }
+
+            // Keep only the first (newest) per window since results are desc
+            if (!windowMap.has(windowKey)) {
+                windowMap.set(windowKey, p)
+            }
+        }
+
+        const deduplicated = Array.from(windowMap.values()).slice(0, 3)
+        console.log('[SignalCard] Deduplicated sessions count:', deduplicated.length)
+        setLastPredictions(deduplicated)
     }
 
     // Helper function to parse and fix malformed time formats
@@ -142,13 +222,13 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
             <Card className="w-full bg-slate-900/60 backdrop-blur-xl border-white/10 text-white overflow-hidden relative shadow-2xl shadow-purple-900/20">
                 <div className={`absolute top-0 left-0 w-1 h-full ${isWindowActive ? 'bg-pink-500' : 'bg-slate-600'}`} />
 
-                <CardContent className="p-6">
-                    <div className="flex flex-row gap-6 items-center justify-between">
+                <CardContent className="p-4 md:p-6">
+                    <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center justify-between">
 
                         {/* 1. 10x Section - SEMPRE VISÍVEL */}
-                        <div className="flex flex-col items-center gap-1">
-                            <div className="text-5xl md:text-6xl font-sans font-black tracking-tight text-white drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]">
-                                10.00x<span className="text-pink-500 text-3xl align-top">+</span>
+                        <div className="flex flex-col items-center gap-1 w-full md:w-auto">
+                            <div className="text-4xl md:text-5xl lg:text-6xl font-sans font-black tracking-tight text-white drop-shadow-[0_0_15px_rgba(236,72,153,0.5)]">
+                                10.00x<span className="text-pink-500 text-2xl md:text-3xl align-top">+</span>
                             </div>
                             {isWindowActive && prediction ? (
                                 <Badge variant="outline" className="mt-1 border-green-500/50 text-green-400 bg-green-500/10 text-xs">
@@ -162,7 +242,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                         </div>
 
                         {/* 2. Análise da Vela Section - SEMPRE VISÍVEL */}
-                        <div className="flex flex-col items-center gap-2 flex-1">
+                        <div className="flex flex-col items-center gap-2 flex-1 w-full">
                             {isWindowActive && suggestedTimes.length > 0 && !suggestedTimes.join('').includes('Evitar apostas') ? (
                                 <>
                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Horários Confirmados</span>
@@ -184,8 +264,8 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                                 {lastPredictions[0].suggested_range.split(',').sort().map((timeRange, idx) => {
                                                     const fixedTime = parseTimeFormat(timeRange.trim());
                                                     return (
-                                                        <div key={idx} className="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg opacity-70">
-                                                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                        <div key={idx} className="bg-white text-black px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg shadow-white/10">
+                                                            <Clock className="w-3.5 h-3.5 text-black" />
                                                             <span className="font-bold font-mono text-sm">{fixedTime}</span>
                                                         </div>
                                                     );
@@ -213,8 +293,8 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                                 {lastPredictions[0].suggested_range.split(',').sort().map((timeRange, idx) => {
                                                     const fixedTime = parseTimeFormat(timeRange.trim());
                                                     return (
-                                                        <div key={idx} className="bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg opacity-70">
-                                                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                                        <div key={idx} className="bg-white text-black px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg shadow-white/10">
+                                                            <Clock className="w-3.5 h-3.5 text-black" />
                                                             <span className="font-bold font-mono text-sm">{fixedTime}</span>
                                                         </div>
                                                     );
@@ -236,22 +316,22 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                         </div>
 
                         {/* 3. Countdown Section - SEMPRE VISÍVEL */}
-                        <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">
+                        <div className="flex flex-col items-center gap-1 w-full md:w-auto">
+                            <span className="text-xs text-slate-500 uppercase font-bold tracking-wider text-center">
                                 {isWindowActive && suggestedTimes.length > 0 ? "Próxima Análise" : "Próxima Análise Em"}
                             </span>
-                            <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-800/50">
-                                <Clock className="w-5 h-5 text-slate-500" />
-                                <span className="text-2xl font-mono font-bold text-slate-300 tracking-wider">
+                            <div className="flex items-center gap-2 bg-slate-900/50 px-3 md:px-4 py-1.5 md:py-2 rounded-lg border border-slate-800/50">
+                                <Clock className="w-4 md:w-5 h-4 md:h-5 text-slate-500" />
+                                <span className="text-xl md:text-2xl font-mono font-bold text-slate-300 tracking-wider">
                                     {countdown || "00:00:00"}
                                 </span>
                             </div>
                         </div>
 
                         {/* 4. Button Section - SEMPRE VISÍVEL */}
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-col items-center md:items-end gap-2 w-full md:w-auto">
                             <Button
-                                className="w-[200px] bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black h-12 text-base shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wide border-0"
+                                className="w-full md:w-[200px] bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black h-11 md:h-12 text-sm md:text-base shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wide border-0"
                                 onClick={() => {
                                     const url = platform === 'superbet'
                                         ? "https://brsuperbet.com/registro_7330"
@@ -259,7 +339,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                     window.open(url, '_blank')
                                 }}
                             >
-                                <Rocket className="mr-2 h-5 w-5" />
+                                <Rocket className="mr-2 h-4 md:h-5 w-4 md:w-5" />
                                 ABRIR {platform === 'superbet' ? 'SUPERBET' : 'BRAVOBET'}
                             </Button>
                         </div>
@@ -293,6 +373,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                     <div className="flex flex-col gap-1 mt-1">
                                         {pred.suggested_range.split(',').sort().map((timeRange, idx) => {
                                             const fixedTime = parseTimeFormat(timeRange.trim());
+                                            if (!fixedTime) return null; // Don't render empty badges
                                             return (
                                                 <div key={idx} className="bg-yellow-500 text-black px-3 py-1 rounded shadow-md font-bold text-sm text-center">
                                                     {fixedTime}
