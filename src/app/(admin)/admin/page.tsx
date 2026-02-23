@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Users, Activity, Signal, UserPlus, TrendingUp } from "lucide-react"
 import { getDashboardStats, getOnlineUsers, getRegistrationStats, getActivityStats } from "@/app/actions/admin-actions"
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { PredictionsMonitor } from "@/components/features/admin/predictions-monitor"
+import { LiveManager } from "@/components/features/admin/live-manager"
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState({ totalUsers: 0, active24h: 0, onlineNow: 0, newToday: 0 })
@@ -74,8 +76,8 @@ export default function AdminDashboardPage() {
         <div className="space-y-8">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard Administrativo</h1>
-                <p className="text-muted-foreground mt-1">Visão geral do sistema e usuários em tempo real.</p>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard Administrativo</h1>
+                <p className="text-muted-foreground mt-1 text-sm md:text-base">Visão geral do sistema e usuários em tempo real.</p>
             </div>
 
             {/* Stat Cards */}
@@ -109,7 +111,7 @@ export default function AdminDashboardPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-[250px]">
+                        <div className="h-[200px] md:h-[250px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={regStats}>
                                     <defs>
@@ -119,8 +121,8 @@ export default function AdminDashboardPage() {
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                    <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-                                    <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                                    <XAxis dataKey="label" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: "hsl(var(--card))",
@@ -148,12 +150,12 @@ export default function AdminDashboardPage() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="h-[250px]">
+                        <div className="h-[200px] md:h-[250px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={activityStats}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                    <XAxis dataKey="hour" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" interval={2} />
-                                    <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                                    <XAxis dataKey="hour" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" interval={3} />
+                                    <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{
                                             backgroundColor: "hsl(var(--card))",
@@ -168,6 +170,24 @@ export default function AdminDashboardPage() {
                         </div>
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Predictions Monitor */}
+            <div className="space-y-4">
+                <div>
+                    <h2 className="text-xl font-semibold">Monitor de Previsões</h2>
+                    <p className="text-sm text-muted-foreground">Últimas previsões geradas pelo sistema</p>
+                </div>
+                <PredictionsMonitor />
+            </div>
+
+            {/* Live Manager */}
+            <div className="space-y-4">
+                <div>
+                    <h2 className="text-xl font-semibold">Controle de Lives</h2>
+                    <p className="text-sm text-muted-foreground">Ative experts ao vivo nas plataformas parceiras</p>
+                </div>
+                <LiveManager />
             </div>
 
             {/* Online Users Section */}
@@ -193,7 +213,7 @@ export default function AdminDashboardPage() {
                     {onlineUsers.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-6">Nenhum usuário online no momento.</p>
                     ) : (
-                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                             {onlineUsers.map((user) => (
                                 <div key={user.id} className="flex items-center gap-3 rounded-lg border p-3 bg-card hover:bg-accent/50 transition-colors">
                                     <div className="relative">

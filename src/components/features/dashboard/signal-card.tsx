@@ -48,16 +48,22 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
             next.setMilliseconds(0)
 
             if (platform === 'bravobet') {
-                // Bravobet: always counts to next :00 (top of hour)
+                // Bravobet: sempre conta para o próximo :00
                 next.setHours(hours + 1)
                 next.setMinutes(0)
+            } else if (platform === 'esportivabet') {
+                // EsportivaBet: conta para o próximo :15
+                if (minutes < 15) {
+                    next.setMinutes(15)
+                } else {
+                    next.setHours(hours + 1)
+                    next.setMinutes(15)
+                }
             } else {
-                // Superbet: counts to next :30
+                // Superbet: conta para o próximo :30
                 if (minutes < 30) {
-                    // Before :30, go to :30 this hour
                     next.setMinutes(30)
                 } else {
-                    // After :30, go to :30 next hour
                     next.setHours(hours + 1)
                     next.setMinutes(30)
                 }
@@ -135,8 +141,11 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
             let windowKey: string
             if (platform === 'bravobet') {
                 windowKey = `${h.toString().padStart(2, '0')}:00`
+            } else if (platform === 'esportivabet') {
+                // EsportivaBet: agrupa pela janela de :15
+                windowKey = m >= 15 ? `${h.toString().padStart(2, '0')}:15` : `${(h === 0 ? 23 : h - 1).toString().padStart(2, '0')}:15`
             } else {
-                // Superbet: group by half-hour
+                // Superbet: agrupa pela meia-hora
                 windowKey = m >= 30 ? `${h.toString().padStart(2, '0')}:30` : `${(h === 0 ? 23 : h - 1).toString().padStart(2, '0')}:30`
             }
 
@@ -333,14 +342,19 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                             <Button
                                 className="w-full md:w-[200px] bg-gradient-to-r from-pink-600 via-pink-500 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black h-11 md:h-12 text-sm md:text-base shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wide border-0"
                                 onClick={() => {
-                                    const url = platform === 'superbet'
-                                        ? "https://brsuperbet.com/registro_7330"
-                                        : "https://affiliates.bravo.bet.br/links/?accounts=%2A&register=%2A&btag=1989135_l350155__"
+                                    let url: string
+                                    if (platform === 'superbet') {
+                                        url = "https://brsuperbet.com/registro_7330"
+                                    } else if (platform === 'esportivabet') {
+                                        url = "https://esportiva.bet.br/games/spribe/aviator"
+                                    } else {
+                                        url = "https://affiliates.bravo.bet.br/links/?accounts=%2A&register=%2A&btag=1989135_l350155__"
+                                    }
                                     window.open(url, '_blank')
                                 }}
                             >
                                 <Rocket className="mr-2 h-4 md:h-5 w-4 md:w-5" />
-                                ABRIR {platform === 'superbet' ? 'SUPERBET' : 'BRAVOBET'}
+                                ABRIR {platform === 'superbet' ? 'SUPERBET' : platform === 'esportivabet' ? 'ESPORTIVABET' : 'BRAVOBET'}
                             </Button>
                         </div>
 

@@ -3,6 +3,9 @@ import { Plus_Jakarta_Sans, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OnlineTracker } from "@/components/features/tracking/online-tracker";
+import { FloatingCRMChat } from "@/components/features/chat/floating-crm-chat";
+import { SitePopupDisplay } from "@/components/features/popup/site-popup-display";
+import { Toaster } from "sonner";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -44,7 +47,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <OnlineTracker />
+          <FloatingCRMChat />
+          <SitePopupDisplay />
           {children}
+          <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
     </html>

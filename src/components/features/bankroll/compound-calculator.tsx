@@ -27,12 +27,14 @@ type ProjectionDay = {
     balance: number
     profit: number
     cumulativeProfit: number
+    stoploss: number
 }
 
 export function CompoundCalculator() {
     const [initialBalance, setInitialBalance] = useState<string>("1000")
     const [days, setDays] = useState<string>("30")
     const [dailyPercent, setDailyPercent] = useState<string>("2")
+    const [stoplossPercent, setStoplossPercent] = useState<string>("5")
     const [projection, setProjection] = useState<ProjectionDay[]>([])
     const [calculated, setCalculated] = useState(false)
     const [isTableOpen, setIsTableOpen] = useState(true)
@@ -61,6 +63,7 @@ export function CompoundCalculator() {
         const initial = parseFloat(initialBalance) || 0
         const numDays = parseInt(days) || 0
         const percent = parseFloat(dailyPercent) || 0
+        const slPercent = parseFloat(stoplossPercent) || 0
 
         if (initial <= 0 || numDays <= 0 || percent <= 0) {
             return
@@ -71,15 +74,18 @@ export function CompoundCalculator() {
         let totalProfit = 0
 
         for (let day = 1; day <= numDays; day++) {
+            const startBalance = currentBalance
             const dailyProfit = currentBalance * (percent / 100)
             currentBalance += dailyProfit
             totalProfit += dailyProfit
+            const dailyStoploss = startBalance * (slPercent / 100)
 
             results.push({
                 day,
                 balance: currentBalance,
                 profit: dailyProfit,
-                cumulativeProfit: totalProfit
+                cumulativeProfit: totalProfit,
+                stoploss: dailyStoploss
             })
         }
 
@@ -128,7 +134,7 @@ export function CompoundCalculator() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         {/* Initial Balance */}
                         <div className="space-y-2">
                             <Label htmlFor="initial" className="text-slate-300 flex items-center gap-2">
@@ -183,6 +189,25 @@ export function CompoundCalculator() {
                                 step="0.5"
                             />
                         </div>
+
+                        {/* Stoploss Percent */}
+                        <div className="space-y-2">
+                            <Label htmlFor="stoploss" className="text-slate-300">
+                                % de Stoploss
+                            </Label>
+                            <Input
+                                id="stoploss"
+                                type="number"
+                                value={stoplossPercent}
+                                onChange={(e) => setStoplossPercent(e.target.value)}
+                                className="bg-slate-800 border-red-900/50 text-white text-lg font-mono focus-visible:ring-red-500"
+                                placeholder="5"
+                                min="0.1"
+                                max="100"
+                                step="0.5"
+                            />
+                        </div>
+
                     </div>
 
                     <Button
@@ -246,6 +271,7 @@ export function CompoundCalculator() {
                                 <Progress value={progressPercentage} className="h-2 bg-slate-800" />
                             </CardContent>
                         </Card>
+
                     </div>
 
                     {/* Collapsible Projection Table */}
@@ -281,6 +307,7 @@ export function CompoundCalculator() {
                                                     <TableHead className="text-slate-400 font-bold text-right">Meta / Saldo</TableHead>
                                                     <TableHead className="text-slate-400 font-bold text-right">Ganho do Dia</TableHead>
                                                     <TableHead className="text-slate-400 font-bold text-right">Lucro Acumulado</TableHead>
+                                                    <TableHead className="text-slate-400 font-bold text-right">Stop Loss</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -290,8 +317,8 @@ export function CompoundCalculator() {
                                                         <TableRow
                                                             key={day.day}
                                                             className={`border-slate-800 transition-colors ${isChecked
-                                                                    ? 'bg-green-950/10 hover:bg-green-950/20'
-                                                                    : 'hover:bg-slate-800/50'
+                                                                ? 'bg-green-950/10 hover:bg-green-950/20'
+                                                                : 'hover:bg-slate-800/50'
                                                                 }`}
                                                         >
                                                             <TableCell>
@@ -312,6 +339,9 @@ export function CompoundCalculator() {
                                                             </TableCell>
                                                             <TableCell className="text-right font-mono text-purple-400">
                                                                 {formatCurrency(day.cumulativeProfit)}
+                                                            </TableCell>
+                                                            <TableCell className="text-right font-mono text-red-400">
+                                                                -{formatCurrency(day.stoploss)}
                                                             </TableCell>
                                                         </TableRow>
                                                     )

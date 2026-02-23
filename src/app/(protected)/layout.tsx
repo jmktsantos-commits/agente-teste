@@ -1,5 +1,6 @@
 import { Sidebar, MobileNav } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { FloatingClock } from "@/components/features/layout/floating-clock"
 
 export default function ProtectedLayout({
     children,
@@ -20,6 +21,8 @@ export default function ProtectedLayout({
             <div className="md:hidden fixed bottom-0 left-0 w-full z-50">
                 <MobileNav />
             </div>
+
+            <FloatingClock />
         </div>
     )
 }

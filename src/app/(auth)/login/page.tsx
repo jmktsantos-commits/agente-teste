@@ -24,7 +24,7 @@ export default function LoginPage() {
         setError(null)
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data: authData, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
@@ -33,13 +33,32 @@ export default function LoginPage() {
                 throw error
             }
 
-            router.push("/dashboard")
+            // Redirect based on role
+            if (authData.user) {
+                const { data: profile } = await supabase
+                    .from("profiles")
+                    .select("role")
+                    .eq("id", authData.user.id)
+                    .single()
+
+                if (profile?.role === "affiliate") {
+                    router.push("/affiliate")
+                } else if (profile?.role === "admin") {
+                    router.push("/admin")
+                } else {
+                    router.push("/dashboard")
+                }
+            } else {
+                router.push("/dashboard")
+            }
+
             router.refresh()
         } catch (err: any) {
             setError(err.message)
         } finally {
             setLoading(false)
         }
+
     }
 
     const handleGoogleLogin = async () => {

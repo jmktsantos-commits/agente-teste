@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, MessageSquare, Settings, LogOut, LayoutDashboard, ArrowLeft, Shield } from "lucide-react"
+import { Users, MessageSquare, Settings, LogOut, LayoutDashboard, ArrowLeft, Shield, GitMerge } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/utils/supabase/client"
 import { useRouter } from "next/navigation"
+import { ModeToggle } from "@/components/mode-toggle"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
@@ -34,10 +35,22 @@ export function AdminSidebar({ className }: SidebarProps) {
             active: pathname === "/admin/users",
         },
         {
+            href: "/admin/affiliates",
+            label: "Afiliados",
+            icon: GitMerge,
+            active: pathname.startsWith("/admin/affiliates"),
+        },
+        {
             href: "/admin/communications",
             label: "Comunicações",
             icon: MessageSquare,
             active: pathname === "/admin/communications",
+        },
+        {
+            href: "/crm",
+            label: "CRM / Leads",
+            icon: Users,
+            active: pathname.startsWith("/crm"),
         },
         {
             href: "/admin/settings",
@@ -46,6 +59,7 @@ export function AdminSidebar({ className }: SidebarProps) {
             active: pathname === "/admin/settings",
         },
     ]
+
 
     return (
         <div className={cn("flex flex-col min-h-screen bg-card/80 backdrop-blur-sm", className)}>
@@ -86,6 +100,9 @@ export function AdminSidebar({ className }: SidebarProps) {
 
             {/* Footer */}
             <div className="px-3 py-4 border-t space-y-1">
+                <div className="px-3 py-2">
+                    <ModeToggle />
+                </div>
                 <Link
                     href="/dashboard"
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"

@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/client'
 
 export type PredictionType = 'WAIT_HIGH' | 'NORMAL' | 'CAUTION' | 'IA_MATH'
-export type Platform = 'bravobet' | 'superbet'
+export type Platform = 'bravobet' | 'esportivabet' | 'superbet'
 
 export interface AnalysisData {
     low_streak: number
@@ -52,6 +52,8 @@ export async function generatePrediction(platform: Platform): Promise<Prediction
         .eq('platform', platform)
         .gte('created_at', hourStart.toISOString())
         .lt('created_at', hourEnd.toISOString())
+        // NEW: Ignore error predictions during deduplication check
+        .not('analysis_data->>status', 'eq', 'erro')
         .limit(1)
 
     if (existing && existing.length > 0) {
@@ -246,66 +248,85 @@ export function getNextAnalysisTime(platform: Platform): Date {
     // Usar fuso horário de São Paulo
     const now = new Date()
     const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-    const hour = spTime.getHours()
-    const isEvenHour = hour % 2 === 0
+    const currentMinutes = spTime.getMinutes()
 
-    // Regra:
-    // Horas Pares (00, 02, ... 12) -> Bravobet
-    // Horas Ímpares (01, 03, ... 13) -> Superbet
+    // Regra 3 plataformas (por hora):
+    // BravoBet:     análise às :00   → minutos 0-14
+    // EsportivaBet: análise às :15   → minutos 15-29
+    // SuperBet:     análise às :30   → minutos 30-59
 
     let nextTime = new Date(now)
-    // Ajustar nextTime mantendo o mesmo desfase do SP time
-
-    // Simplificação: apenas calcular o próximo alvo em SP time e converter de volta se necessário
-    // Mas para display, o frontend usa o objeto Date local do usuário.
-    // O importante é a lógica de par/impar bater com o SP time.
-
-    nextTime.setMinutes(0, 0, 0)
 
     if (platform === 'bravobet') {
-        if (isEvenHour) {
-            return nextTime
+        // Sempre conta para a próxima hora às :00
+        nextTime.setHours(nextTime.getHours() + 1)
+        nextTime.setMinutes(0, 0, 0)
+    } else if (platform === 'esportivabet') {
+        // Conta para o próximo :15
+        if (currentMinutes < 15) {
+            nextTime.setMinutes(15, 0, 0)
         } else {
             nextTime.setHours(nextTime.getHours() + 1)
-            return nextTime
+            nextTime.setMinutes(15, 0, 0)
         }
     } else { // superbet
-        if (!isEvenHour) {
-            return nextTime
+        if (currentMinutes < 30) {
+            nextTime.setMinutes(30, 0, 0)
         } else {
             nextTime.setHours(nextTime.getHours() + 1)
-            return nextTime
+            nextTime.setMinutes(30, 0, 0)
         }
     }
+
+    return nextTime
 }
 
 export function isPlatformWindowActive(platform: Platform): boolean {
     // Usar fuso horário de São Paulo para verificação
     const now = new Date()
     const spTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }))
-    const hour = spTime.getHours()
+    const currentMinutes = spTime.getMinutes()
 
-    const isEven = hour % 2 === 0
-    if (platform === 'bravobet') return isEven
-    return !isEven
+    // Regra 3 plataformas — janelas ativas por minuto:
+    // BravoBet:     minutos  0-14  (análise às :00)
+    // EsportivaBet: minutos 15-29  (análise às :15)
+    // SuperBet:     minutos 30-59  (análise às :30)
+
+    if (platform === 'bravobet') return currentMinutes < 15
+    if (platform === 'esportivabet') return currentMinutes >= 15 && currentMinutes < 30
+    return currentMinutes >= 30 // superbet
 }
 
 export async function getActivePrediction(platform: Platform): Promise<Prediction | null> {
+    console.log('[getActivePrediction] Fetching for platform:', platform)
     const supabase = createClient()
+    const now = new Date().toISOString()
+    console.log('[getActivePrediction] Current time:', now)
 
     const { data, error } = await supabase
         .from('predictions')
         .select('*')
         .eq('platform', platform)
         .eq('is_active', true)
-        .gte('expires_at', new Date().toISOString())
+        // TEMPORARILY COMMENTED: Ignore predictions marked as error (from external sources)
+        // .not('analysis_data->status', 'eq', 'erro')
+        .gte('expires_at', now)
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
 
-    if (error || !data) {
+    if (error) {
+        console.warn('[getActivePrediction] Query error or no results:', error)
         return null
     }
+
+    console.log('[getActivePrediction] Found prediction:', data ? {
+        id: data.id,
+        platform: data.platform,
+        created_at: data.created_at,
+        expires_at: data.expires_at,
+        suggested_range: data.suggested_range
+    } : null)
 
     return data as Prediction
 }

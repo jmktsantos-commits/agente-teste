@@ -4,7 +4,9 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { AdminSidebar } from "@/components/admin/sidebar"
-import { Loader2 } from "lucide-react"
+import { Loader2, Menu } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function AdminLayout({
     children,
@@ -12,6 +14,7 @@ export default function AdminLayout({
     children: React.ReactNode
 }) {
     const [isLoading, setIsLoading] = useState(true)
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const router = useRouter()
     const supabase = createClient()
 
@@ -56,11 +59,30 @@ export default function AdminLayout({
 
     return (
         <div className="flex min-h-screen w-full bg-background">
+            {/* Desktop Sidebar */}
             <div className="hidden border-r bg-card/50 md:block w-64 fixed h-full z-30">
                 <AdminSidebar />
             </div>
+
+            {/* Mobile Header with Menu */}
+            <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-sm border-b">
+                <div className="flex items-center justify-between p-4">
+                    <h1 className="text-lg font-bold">Admin Panel</h1>
+                    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <Menu className="h-5 w-5" />
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="p-0 w-64">
+                            <AdminSidebar />
+                        </SheetContent>
+                    </Sheet>
+                </div>
+            </div>
+
             <div className="flex flex-col w-full md:pl-64">
-                <main className="flex-1 p-6 lg:p-8">
+                <main className="flex-1 p-6 lg:p-8 pt-20 md:pt-6">
                     {children}
                 </main>
             </div>

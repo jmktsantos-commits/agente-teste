@@ -1,0 +1,132 @@
+{
+    "name": "CRM - Incoming Message Handler",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "crm/webhook",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "dataType": "string",
+                "value1": "={{$json.body.type}}",
+                "rules": {
+                    "rules": [
+                        {
+                            "value2": "whatsapp"
+                        },
+                        {
+                            "value2": "email"
+                        }
+                    ]
+                }
+            },
+            "name": "Switch Channel",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "tableId": "crm_leads",
+                "operation": "upsert",
+                "columns": "phone, full_name, source, status",
+                "options": {}
+            },
+            "name": "Upsert Lead (WhatsApp)",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                650,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "tableId": "crm_conversations",
+                "operation": "upsert",
+                "columns": "lead_id, channel, status",
+                "options": {}
+            },
+            "name": "Get Conversation",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "tableId": "crm_messages",
+                "columns": "conversation_id, direction, content, content_type",
+                "options": {}
+            },
+            "name": "Save Message",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Switch Channel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Switch Channel": {
+            "main": [
+                [
+                    {
+                        "node": "Upsert Lead (WhatsApp)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Upsert Lead (WhatsApp)": {
+            "main": [
+                [
+                    {
+                        "node": "Get Conversation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Conversation": {
+            "main": [
+                [
+                    {
+                        "node": "Save Message",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

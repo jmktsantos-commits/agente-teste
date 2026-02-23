@@ -40,16 +40,24 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
         // Realtime Subscription
         const channel = supabase
             .channel(`realtime_history_${selectedPlatform}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crash_history' }, (payload) => {
-                const newItem = payload.new as HistoryItem
-                if (newItem.platform === selectedPlatform) {
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'crash_history',
+                    filter: `platform=eq.${selectedPlatform}`
+                },
+                (payload) => {
+                    const newItem = payload.new as HistoryItem
+                    console.log('[History] New crash item:', newItem)
                     setHistory(prev => {
                         // Prevent duplicates
                         if (prev.some(item => item.id === newItem.id)) return prev;
                         return [newItem, ...prev].slice(0, 200)
                     })
                 }
-            })
+            )
             .subscribe()
 
         return () => {
@@ -61,7 +69,7 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
         if (!isoString) return '--:--'
         const date = new Date(isoString)
         if (isNaN(date.getTime())) return '--:--'
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     }
 
     const getMultiplierColor = (multiplier: number) => {
@@ -80,7 +88,7 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
             <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                     <History className="w-5 h-5 text-slate-400" />
-                    Histórico - {selectedPlatform === 'bravobet' ? 'Bravobet' : 'Superbet'}
+                    Histórico - {selectedPlatform === 'bravobet' ? 'Bravobet' : selectedPlatform === 'esportivabet' ? 'EsportivaBet' : 'Superbet'}
                     <span className="text-xs font-normal text-slate-500 ml-auto bg-slate-800 px-2 py-1 rounded">200 velas</span>
                 </CardTitle>
             </CardHeader>

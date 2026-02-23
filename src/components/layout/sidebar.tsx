@@ -11,7 +11,8 @@ import {
     MessageSquare,
     GraduationCap,
     LifeBuoy,
-    Rocket
+    Rocket,
+    Radio
 } from "lucide-react"
 
 const routes = [
@@ -38,6 +39,12 @@ const routes = [
         icon: Gamepad2,
         href: "/cassino",
         color: "text-orange-500",
+    },
+    {
+        label: "Live",
+        icon: Radio,
+        href: "/live",
+        color: "text-red-500",
     },
     {
         label: "Chat",

@@ -66,7 +66,7 @@ export default function UsersPage() {
         if (result?.success) {
             loadUsers()
         } else {
-            alert("Erro ao realizar ação")
+            alert(`Erro: ${result?.error ?? "Ação falhou. Verifique as permissões."}`)
         }
     }
 
@@ -163,12 +163,20 @@ export default function UsersPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge className={user.role === 'admin'
-                                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20'
-                                                : 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20 hover:bg-zinc-500/20'
-                                            }>
-                                                {user.role}
-                                            </Badge>
+                                            {user.role === 'admin' && (
+                                                <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Admin</Badge>
+                                            )}
+                                            {user.role === 'affiliate' && (
+                                                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Afiliado</Badge>
+                                            )}
+                                            {user.role === 'user' && user.btag && (
+                                                <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20" title={`Veio pelo afiliado: ${user.btag}`}>
+                                                    Lead Afiliado
+                                                </Badge>
+                                            )}
+                                            {user.role === 'user' && !user.btag && (
+                                                <Badge className="bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Direto</Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
                                             {online
@@ -258,8 +266,15 @@ export default function UsersPage() {
                                     </p>
                                 </div>
                                 <div className="rounded-lg border p-3">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Role</p>
-                                    <p className="text-sm font-semibold mt-1">{selectedUser.role === 'admin' ? '🛡️ Admin' : '👤 User'}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tipo</p>
+                                    <p className="text-sm font-semibold mt-1">
+                                        {selectedUser.role === 'admin' && '🛡️ Admin'}
+                                        {selectedUser.role === 'affiliate' && '🤝 Afiliado'}
+                                        {selectedUser.role === 'user' && selectedUser.btag && (
+                                            <span className="text-orange-500">🔗 Lead Afiliado</span>
+                                        )}
+                                        {selectedUser.role === 'user' && !selectedUser.btag && '👤 Direto'}
+                                    </p>
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Cadastro</p>
@@ -277,6 +292,12 @@ export default function UsersPage() {
                                     </p>
                                 </div>
                             </div>
+                            {selectedUser.btag && (
+                                <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Veio pelo Afiliado</p>
+                                    <p className="text-sm font-mono font-semibold mt-1 text-orange-500">{selectedUser.btag}</p>
+                                </div>
+                            )}
                             <div className="rounded-lg border p-3">
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">ID do Usuário</p>
                                 <p className="text-xs font-mono mt-1 text-muted-foreground break-all">{selectedUser.id}</p>
