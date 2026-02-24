@@ -149,14 +149,6 @@ export default function LoginPage() {
                                 Google
                             </Button>
                         </CardContent>
-                        <CardFooter className="justify-center">
-                            <p className="text-sm text-muted-foreground">
-                                Não tem uma conta?{" "}
-                                <Link href="/registro" className="text-primary hover:underline">
-                                    Registrar
-                                </Link>
-                            </p>
-                        </CardFooter>
                     </>
                 )}
 
