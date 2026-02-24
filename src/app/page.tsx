@@ -9,8 +9,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const CHECKOUT_MENSAL = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "#planos"
-const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "#planos"
+const CHECKOUT_MENSAL = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/831neegpw7t2n492"
+const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/13beu9bmazofoy9i"
 
 // ── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
