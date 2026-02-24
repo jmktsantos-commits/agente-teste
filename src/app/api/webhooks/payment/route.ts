@@ -11,8 +11,24 @@ function getServiceClient() {
     )
 }
 
-// ── Busca pagamento pelo ID (inclui email do cliente) ─────────────────────────
-async function fetchPaymentFromAsaas(paymentId: string): Promise<{ email: string; name: string } | null> {
+interface BuyerInfo {
+    email: string
+    name: string
+    phone?: string
+    planName?: string
+    planValue?: number
+}
+
+// ── Determina nome do plano pelo valor do pagamento ────────────────────────────
+function getPlanName(value?: number): string {
+    if (!value) return "Assinatura"
+    if (value <= 150) return "Plano Mensal"
+    if (value <= 800) return "Plano Anual"
+    return `Plano (R$${value})`
+}
+
+// ── Busca pagamento pelo ID (inclui email, telefone e plano do cliente) ────────
+async function fetchPaymentFromAsaas(paymentId: string): Promise<BuyerInfo | null> {
     const bases = [
         "https://sandbox.asaas.com/api/v3",
         "https://api.asaas.com/v3",
@@ -21,27 +37,44 @@ async function fetchPaymentFromAsaas(paymentId: string): Promise<{ email: string
 
     for (const base of [...new Set(bases)]) {
         try {
-            // Busca o pagamento para ter o customer ID
             const res = await fetch(`${base}/payments/${paymentId}`, {
                 headers: { "access_token": ASAAS_API_KEY },
             })
             const text = await res.text()
-            console.log(`[webhook] payments/${paymentId} → ${res.status}: ${text.slice(0, 300)}`)
+            console.log(`[webhook] payments/${paymentId} → ${res.status}: ${text.slice(0, 400)}`)
             if (!res.ok) continue
 
             const pay = JSON.parse(text)
+            const planValue: number | undefined = pay.value
+            const planName = getPlanName(planValue)
 
-            // Asaas às vezes inclui o email diretamente no pagamento
-            if (pay.customer?.email) return { email: pay.customer.email, name: pay.customer.name ?? "Membro" }
+            // Asaas às vezes inclui o email diretamente no pagamento (customer expandido)
+            if (pay.customer?.email) {
+                return {
+                    email: pay.customer.email,
+                    name: pay.customer.name ?? "Membro",
+                    phone: pay.customer.mobilePhone ?? pay.customer.phone ?? undefined,
+                    planName,
+                    planValue,
+                }
+            }
 
-            // Caso o campo customer seja apenas uma string com o ID
+            // Caso o campo customer seja apenas uma string com o ID → busca cliente
             if (pay.customer) {
                 const cRes = await fetch(`${base}/customers/${pay.customer}`, {
                     headers: { "access_token": ASAAS_API_KEY },
                 })
                 if (cRes.ok) {
                     const cData = await cRes.json()
-                    if (cData.email) return { email: cData.email, name: cData.name ?? "Membro" }
+                    if (cData.email) {
+                        return {
+                            email: cData.email,
+                            name: cData.name ?? "Membro",
+                            phone: cData.mobilePhone ?? cData.phone ?? undefined,
+                            planName,
+                            planValue,
+                        }
+                    }
                 }
             }
         } catch (e: any) {
@@ -72,7 +105,6 @@ function isAuthorized(req: NextRequest): boolean {
 
 // ── Handler principal ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-    // Sempre retorna 200 para evitar penalizações do Asaas
     try {
         const body = await req.json()
         const event: string = body?.event ?? body?.Event ?? body?.order_status ?? "unknown"
@@ -92,7 +124,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Extrai buyer
-        let buyer: { email: string; name: string } | null = null
+        let buyer: BuyerInfo | null = null
 
         // Asaas: tenta pelo payment ID
         const paymentId: string | undefined = body?.payment?.id
@@ -103,24 +135,41 @@ export async function POST(req: NextRequest) {
 
         // Fallback: customerEmail no payload
         if (!buyer && body?.payment?.customerEmail) {
-            buyer = { email: body.payment.customerEmail, name: body.payment.customerName ?? "Membro" }
+            buyer = {
+                email: body.payment.customerEmail,
+                name: body.payment.customerName ?? "Membro",
+                phone: body.payment.customerPhone ?? undefined,
+                planName: getPlanName(body.payment.value),
+                planValue: body.payment.value,
+            }
         }
 
         // Fallback: Kiwify
         if (!buyer && body?.Customer?.email) {
-            buyer = { email: body.Customer.email, name: body.Customer.full_name ?? "Membro" }
+            buyer = {
+                email: body.Customer.email,
+                name: body.Customer.full_name ?? "Membro",
+                phone: body.Customer.phone ?? undefined,
+                planName: body.Product?.name ?? "Assinatura",
+            }
         }
 
         // Fallback: Hotmart
         if (!buyer && body?.data?.buyer?.email) {
-            buyer = { email: body.data.buyer.email, name: body.data.buyer.name ?? "Membro" }
+            buyer = {
+                email: body.data.buyer.email,
+                name: body.data.buyer.name ?? "Membro",
+                phone: body.data.buyer.phone ?? undefined,
+                planName: body.data?.product?.name ?? "Assinatura",
+            }
         }
 
         if (!buyer?.email) {
             console.error(`[webhook] Não foi possível extrair email. ASAAS_API_KEY=${!!ASAAS_API_KEY}, paymentId=${paymentId}`)
-            // Retorna 200 mesmo assim para não gerar penalização no Asaas
             return NextResponse.json({ ok: true, skipped: true, reason: "could not extract email — check ASAAS_API_KEY env var" })
         }
+
+        console.log(`[webhook] Comprador: ${buyer.email} | Telefone: ${buyer.phone ?? "N/A"} | Plano: ${buyer.planName ?? "N/A"}`)
 
         const supabase = getServiceClient()
         const { data: existingUsers } = await supabase.auth.admin.listUsers()
@@ -137,6 +186,7 @@ export async function POST(req: NextRequest) {
         })
         if (inviteError) throw inviteError
 
+        // Upsert profile
         await supabase.from("profiles").upsert({
             id: invite.user.id,
             full_name: buyer.name,
@@ -144,16 +194,33 @@ export async function POST(req: NextRequest) {
             created_at: new Date().toISOString(),
         })
 
+        // Cria lead no CRM com telefone e plano
+        const { error: leadError } = await supabase.from("crm_leads").upsert({
+            full_name: buyer.name,
+            email: buyer.email,
+            phone: buyer.phone ?? null,
+            plan_name: buyer.planName ?? "Assinatura",
+            status: "converted",
+            source: "payment",
+            notes: `Pagamento confirmado via Asaas. Plano: ${buyer.planName ?? "N/A"}. Valor: R$${buyer.planValue ?? "?"}`,
+            created_at: new Date().toISOString(),
+        }, { onConflict: "email" })
+
+        if (leadError) {
+            console.warn("[webhook] Erro ao criar lead no CRM:", leadError.message)
+        } else {
+            console.log(`[webhook] ✅ Lead criado no CRM: ${buyer.email}`)
+        }
+
         console.log(`[webhook] ✅ Convite enviado para: ${buyer.email}`)
-        return NextResponse.json({ ok: true, email: buyer.email })
+        return NextResponse.json({ ok: true, email: buyer.email, phone: buyer.phone, plan: buyer.planName })
 
     } catch (err: any) {
         console.error("[webhook] Erro fatal:", err.message)
-        // Retorna 200 para não penalizar no Asaas
         return NextResponse.json({ ok: true, skipped: true, reason: `internal error: ${err.message}` })
     }
 }
 
 export async function GET() {
-    return NextResponse.json({ ok: true, service: "AviatorPro Payment Webhook v5" })
+    return NextResponse.json({ ok: true, service: "AviatorPro Payment Webhook v6" })
 }

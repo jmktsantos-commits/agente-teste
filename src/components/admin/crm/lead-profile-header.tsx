@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Mail, Phone, MapPin, MoreHorizontal, MessageSquare, Send } from "lucide-react"
+import { Mail, Phone, MoreHorizontal, MessageSquare, Send, CreditCard } from "lucide-react"
 import { DBLead } from "@/services/crm"
 import { cn } from "@/lib/utils"
 
@@ -82,9 +82,27 @@ export function LeadProfileHeader({ lead }: LeadProfileHeaderProps) {
                             </div>
                         )}
                         {lead.phone && (
-                            <div className="flex items-center gap-1">
+                            <a
+                                href={`https://wa.me/55${lead.phone.replace(/\D/g, "")}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-green-600 dark:text-green-400 hover:underline"
+                            >
                                 <Phone className="h-4 w-4" />
                                 <span>{lead.phone}</span>
+                            </a>
+                        )}
+                        {(lead as any).plan_name && (
+                            <div className="flex items-center gap-1">
+                                <CreditCard className="h-4 w-4" />
+                                <Badge
+                                    variant="outline"
+                                    className={(lead as any).plan_name?.toLowerCase().includes("anual")
+                                        ? "border-amber-500 text-amber-600 dark:text-amber-400"
+                                        : "border-purple-500 text-purple-600 dark:text-purple-400"}
+                                >
+                                    {(lead as any).plan_name}
+                                </Badge>
                             </div>
                         )}
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">

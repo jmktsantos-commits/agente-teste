@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/client'
 
 export type LeadStatus = 'new' | 'contacted' | 'interested' | 'converted' | 'lost'
-export type LeadSource = 'organic' | 'ads' | 'referral' | 'manual' | 'import'
+export type LeadSource = 'organic' | 'ads' | 'referral' | 'manual' | 'import' | 'payment'
 
 export interface DBLead {
     id: string
@@ -10,6 +10,7 @@ export interface DBLead {
     email?: string
     phone?: string
     birth_date?: string
+    plan_name?: string
     status: LeadStatus
     source: LeadSource
     notes?: string

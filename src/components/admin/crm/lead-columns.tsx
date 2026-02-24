@@ -5,7 +5,7 @@ import { DBLead } from "@/services/crm"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, MessageCircle, Mail } from "lucide-react"
+import { MoreHorizontal, MessageCircle, Mail, Phone, CreditCard } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 
@@ -106,9 +106,60 @@ export const columns: ColumnDef<DBLead>[] = [
         },
     },
     {
+        accessorKey: "phone",
+        header: "Telefone",
+        cell: ({ row }) => {
+            const phone = row.getValue("phone") as string | undefined
+            if (!phone) return <span className="text-xs text-muted-foreground">—</span>
+            const cleaned = phone.replace(/\D/g, "")
+            return (
+                <a
+                    href={`https://wa.me/55${cleaned}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400 hover:underline"
+                >
+                    <Phone className="h-3.5 w-3.5" />
+                    {phone}
+                </a>
+            )
+        },
+    },
+    {
+        accessorKey: "plan_name",
+        header: "Plano",
+        cell: ({ row }) => {
+            const plan = row.getValue("plan_name") as string | undefined
+            if (!plan) return <span className="text-xs text-muted-foreground">—</span>
+            const isAnual = plan.toLowerCase().includes("anual")
+            return (
+                <Badge
+                    variant="outline"
+                    className={isAnual
+                        ? "border-amber-500 text-amber-600 dark:text-amber-400 gap-1"
+                        : "border-purple-500 text-purple-600 dark:text-purple-400 gap-1"}
+                >
+                    <CreditCard className="h-3 w-3" />
+                    {plan}
+                </Badge>
+            )
+        },
+    },
+    {
         accessorKey: "source",
         header: "Origem",
-        cell: ({ row }) => <span className="capitalize text-sm">{row.getValue("source")}</span>,
+        cell: ({ row }) => {
+            const source = row.getValue("source") as string
+            const labels: Record<string, string> = {
+                payment: "💳 Venda",
+                organic: "Orgânico",
+                ads: "Anúncio",
+                referral: "Indicação",
+                manual: "Manual",
+                import: "Importado",
+            }
+            return <span className="capitalize text-sm">{labels[source] ?? source}</span>
+        },
     },
     {
         accessorKey: "created_at",
