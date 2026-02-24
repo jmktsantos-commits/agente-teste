@@ -27,6 +27,28 @@ export interface CasinoConfig {
 }
 
 export const CASINO_CONFIGS: Record<CasinoPlatform, CasinoConfig> = {
+    esportivabet: {
+        id: 'esportivabet',
+        name: 'EsportivaBet',
+        displayName: 'EsportivaBet Casino',
+        affiliateUrl: 'https://go.aff.esportiva.bet/8ywkf5b2?utm_campaign=site',
+        previewImage: '/images/casino/esportivabet-preview.jpg',
+        features: [
+            'Aviator com altos multiplicadores',
+            'Saques rápidos via PIX',
+            'Plataforma 100% brasileira',
+            'Suporte em português'
+        ],
+        bonus: 'Bônus de boas-vindas exclusivo',
+        minDeposit: 'R$ 10',
+        paymentMethods: ['PIX', 'Boleto', 'Cartão de Crédito'],
+        description: 'Plataforma brasileira especializada em jogos crash. Acesse o Aviator com bônus exclusivo.',
+        color: {
+            primary: '#16A34A',
+            secondary: '#4ADE80',
+            gradient: 'linear-gradient(135deg, #16A34A 0%, #4ADE80 100%)'
+        }
+    },
     bravobet: {
         id: 'bravobet',
         name: 'Bravobet',
@@ -70,28 +92,6 @@ export const CASINO_CONFIGS: Record<CasinoPlatform, CasinoConfig> = {
             secondary: '#818CF8',
             gradient: 'linear-gradient(135deg, #4F46E5 0%, #818CF8 100%)'
         }
-    },
-    esportivabet: {
-        id: 'esportivabet',
-        name: 'EsportivaBet',
-        displayName: 'EsportivaBet Casino',
-        affiliateUrl: 'https://esportiva.bet.br?ref=58283e55b9c8',
-        previewImage: '/images/casino/esportivabet-preview.jpg',
-        features: [
-            'Aviator com altos multiplicadores',
-            'Saques rápidos via PIX',
-            'Plataforma 100% brasileira',
-            'Suporte em português'
-        ],
-        bonus: 'Bônus de boas-vindas exclusivo',
-        minDeposit: 'R$ 10',
-        paymentMethods: ['PIX', 'Boleto', 'Cartão de Crédito'],
-        description: 'Plataforma brasileira especializada em jogos crash. Acesse o Aviator com bônus exclusivo.',
-        color: {
-            primary: '#16A34A',
-            secondary: '#4ADE80',
-            gradient: 'linear-gradient(135deg, #16A34A 0%, #4ADE80 100%)'
-        }
     }
 }
 
@@ -103,10 +103,14 @@ export function getCasinoConfig(platform: CasinoPlatform): CasinoConfig {
 }
 
 /**
- * Get all casino configs
+ * Get all casino configs in display order (esportivabet first)
  */
 export function getAllCasinoConfigs(): CasinoConfig[] {
-    return Object.values(CASINO_CONFIGS)
+    return [
+        CASINO_CONFIGS.esportivabet,
+        CASINO_CONFIGS.bravobet,
+        CASINO_CONFIGS.superbet,
+    ]
 }
 
 /**
