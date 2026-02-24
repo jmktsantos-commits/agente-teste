@@ -27,57 +27,50 @@ export async function GET(req: NextRequest) {
             .eq("id", userId)
             .maybeSingle()
 
-        // Step 1: Find lead by email (covers ALL cases: affiliate-created and direct)
-        // We prefer email matching so affiliate leads are always found first.
-        let lead: { id: string } | null = null
+        // Step 1: Obtain lead matching either the email OR the user_id
+        let leadId: string | null = null
 
         if (profile?.email) {
-            // Priority 1: Find a lead that is ALREADY linked to this user_id
-            const { data: linkedLead } = await service
+            // Priority 1: Linked directly to this user
+            const { data: linked } = await service
                 .from("crm_leads")
-                .select("id, user_id, affiliate_id")
-                .ilike("email", profile.email)
+                .select("id")
                 .eq("user_id", userId)
                 .maybeSingle()
 
-            if (linkedLead) {
-                lead = { id: linkedLead.id }
+            if (linked) {
+                leadId = linked.id
             } else {
-                // Priority 2: Find the oldest UNLINKED lead (e.g. affiliate ghost lead)
-                const { data: unlinkedLead } = await service
+                // Priority 2: Check matching email that's UNLINKED (from affiliate)
+                const { data: unlinked } = await service
                     .from("crm_leads")
-                    .select("id, user_id, affiliate_id")
+                    .select("id, user_id")
                     .ilike("email", profile.email)
                     .is("user_id", null)
                     .order("created_at", { ascending: true })
                     .limit(1)
                     .maybeSingle()
 
-                if (unlinkedLead) {
-                    // Link user_id since it's the first time the user logged in
-                    await service
-                        .from("crm_leads")
-                        .update({ user_id: userId })
-                        .eq("id", unlinkedLead.id)
-                    lead = { id: unlinkedLead.id }
+                if (unlinked) {
+                    await service.from("crm_leads").update({ user_id: userId }).eq("id", unlinked.id)
+                    leadId = unlinked.id
                 }
             }
         }
 
-        // Step 2: Fall back to direct user_id match (if email match failed or profile is missing)
-        if (!lead) {
-            const { data: leadByUserId } = await service
+        // Priority 3: No email, but has user_id already
+        if (!leadId) {
+            const { data: directLink } = await service
                 .from("crm_leads")
                 .select("id")
                 .eq("user_id", userId)
                 .maybeSingle()
-            lead = leadByUserId
+            if (directLink) leadId = directLink.id
         }
 
-        // Step 3: Create new lead using UPSERT — ON CONFLICT prevents race condition duplicates
-        if (!lead) {
-            // INSERT ... ON CONFLICT DO NOTHING handles concurrent requests safely
-            await service
+        // Last resort: create a new lead
+        if (!leadId) {
+            const { data: newLead } = await service
                 .from("crm_leads")
                 .insert({
                     user_id: userId,
@@ -87,18 +80,12 @@ export async function GET(req: NextRequest) {
                     status: "new",
                 })
                 .select("id")
-            // The unique constraint on user_id means only the first insert wins
+                .single()
 
-            // Now fetch whichever lead won (ours or the concurrent one)
-            const { data: resolvedLead } = await service
-                .from("crm_leads")
-                .select("id")
-                .eq("user_id", userId)
-                .maybeSingle()
-            lead = resolvedLead
+            if (newLead) leadId = newLead.id
         }
 
-        if (!lead) {
+        if (!leadId) {
             return NextResponse.json({ error: "Could not resolve lead" }, { status: 500 })
         }
 
@@ -106,7 +93,7 @@ export async function GET(req: NextRequest) {
         let { data: conv } = await service
             .from("crm_conversations")
             .select("id")
-            .eq("lead_id", lead.id)
+            .eq("lead_id", leadId)
             .eq("channel", "site_chat")
             .maybeSingle()
 
@@ -114,7 +101,7 @@ export async function GET(req: NextRequest) {
             const { data: newConv } = await service
                 .from("crm_conversations")
                 .insert({
-                    lead_id: lead.id,
+                    lead_id: leadId,
                     channel: "site_chat",
                     status: "open",
                     last_message_at: new Date().toISOString(),
@@ -136,7 +123,7 @@ export async function GET(req: NextRequest) {
             .order("created_at", { ascending: true })
 
         return NextResponse.json({
-            lead_id: lead.id,
+            lead_id: leadId,
             conversation_id: conv.id,
             messages: messages || [],
         })

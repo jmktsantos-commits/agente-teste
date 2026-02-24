@@ -233,6 +233,24 @@ function SpecialistTab({
                     }
                 }
             })
+            .on("broadcast", { event: "new_message" }, (payload) => {
+                const msg = payload.payload?.message as CRMMessage
+                if (!msg) return
+                // Deduplicate
+                if (messagesRef.current.find(m => m.id === msg.id)) return
+                setMessages(prev => {
+                    if (prev.find(m => m.id === msg.id)) return prev
+                    return [...prev, msg]
+                })
+                // Sound + badge + auto-open
+                if (msg.direction === "outbound") {
+                    if (soundEnabledRef.current) playNotificationSound()
+                    if (!isActiveRef.current) {
+                        onUnreadRef.current(1)
+                        onAutoOpenRef.current()
+                    }
+                }
+            })
             .subscribe(s => setRealtimeOk(s === "SUBSCRIBED"))
         return () => { supabase.removeChannel(channel) }
     }, [conversationId]) // stable — only recreate when conversationId changes

@@ -140,6 +140,16 @@ export const CRMService = {
             .update({ last_message_at: new Date().toISOString() })
             .eq('id', conversationId)
 
+        // Broadcast directly to the Realtime channel so the lead's frontend receives it instantly
+        // This is crucial because anonymous leads might not trigger the postgres_changes event due to RLS
+        const channel = supabase.channel(`lead_chat_msgs:${conversationId}`)
+        await channel.send({
+            type: 'broadcast',
+            event: 'new_message',
+            payload: { message: data }
+        })
+        supabase.removeChannel(channel)
+
         return data as DBMessage
     },
 
