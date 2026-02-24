@@ -527,7 +527,7 @@ export function FloatingCRMChat() {
     return (
         <>
             {/* Floating Button — hidden when chat is open */}
-            <div className={cn("fixed bottom-6 right-6 z-50", isOpen && "hidden")}>
+            <div className={cn("fixed bottom-24 right-4 md:bottom-6 md:right-6 z-[60]", isOpen && "hidden")}>
                 <button
                     onClick={handleOpen}
                     className="w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 flex items-center justify-center relative"
@@ -549,7 +549,9 @@ export function FloatingCRMChat() {
               * No more "Conectando..." every time the chat opens.
               */}
             <div className={cn(
-                "fixed bottom-6 right-6 z-50 w-[370px] h-[560px] bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-2xl flex-col overflow-hidden",
+                "fixed z-[60] bg-white dark:bg-slate-900 border border-border rounded-2xl shadow-2xl flex-col overflow-hidden",
+                "bottom-24 right-4 left-4 h-[500px] w-auto", // Mobile sizes
+                "md:bottom-6 md:right-6 md:left-auto md:w-[370px] md:h-[560px]", // Desktop sizes
                 isOpen ? "flex" : "hidden"
             )}>
                 {/* Header */}
