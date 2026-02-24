@@ -3,7 +3,6 @@ import { createClient } from "@supabase/supabase-js"
 
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? ""
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY ?? ""
-const ASAAS_API_URL = process.env.ASAAS_API_URL ?? ""
 
 function getServiceClient() {
     return createClient(
@@ -12,138 +11,130 @@ function getServiceClient() {
     )
 }
 
-// ── Asaas: busca cliente nas URLs de sandbox e produção ───────────────────────
-async function getAsaasCustomer(customerId: string): Promise<{ email: string; name: string } | null> {
-    const urlsToTry = [
-        ASAAS_API_URL,
+// ── Busca pagamento pelo ID (inclui email do cliente) ─────────────────────────
+async function fetchPaymentFromAsaas(paymentId: string): Promise<{ email: string; name: string } | null> {
+    const bases = [
         "https://sandbox.asaas.com/api/v3",
         "https://api.asaas.com/v3",
-    ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i)
+    ]
+    if (process.env.ASAAS_API_URL) bases.unshift(process.env.ASAAS_API_URL)
 
-    for (const baseUrl of urlsToTry) {
+    for (const base of [...new Set(bases)]) {
         try {
-            console.log(`[webhook] GET ${baseUrl}/customers/${customerId}`)
-            const res = await fetch(`${baseUrl}/customers/${customerId}`, {
-                headers: { "access_token": ASAAS_API_KEY, "Content-Type": "application/json" },
+            // Busca o pagamento para ter o customer ID
+            const res = await fetch(`${base}/payments/${paymentId}`, {
+                headers: { "access_token": ASAAS_API_KEY },
             })
             const text = await res.text()
-            console.log(`[webhook] Asaas response ${res.status}: ${text.slice(0, 200)}`)
-            if (res.ok) {
-                const data = JSON.parse(text)
-                if (data?.email) return { email: data.email, name: data.name ?? "Membro" }
+            console.log(`[webhook] payments/${paymentId} → ${res.status}: ${text.slice(0, 300)}`)
+            if (!res.ok) continue
+
+            const pay = JSON.parse(text)
+
+            // Asaas às vezes inclui o email diretamente no pagamento
+            if (pay.customer?.email) return { email: pay.customer.email, name: pay.customer.name ?? "Membro" }
+
+            // Caso o campo customer seja apenas uma string com o ID
+            if (pay.customer) {
+                const cRes = await fetch(`${base}/customers/${pay.customer}`, {
+                    headers: { "access_token": ASAAS_API_KEY },
+                })
+                if (cRes.ok) {
+                    const cData = await cRes.json()
+                    if (cData.email) return { email: cData.email, name: cData.name ?? "Membro" }
+                }
             }
         } catch (e: any) {
-            console.warn(`[webhook] Asaas fetch error at ${baseUrl}:`, e.message)
+            console.warn(`[webhook] Erro ao buscar ${base}/payments/${paymentId}:`, e.message)
         }
     }
     return null
 }
 
 // ── Detecta pagamento confirmado ──────────────────────────────────────────────
-function isPaymentConfirmed(body: any): boolean {
-    const event: string = (body?.event ?? body?.Event ?? "").toString()
-    if (["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"].includes(event)) return true
-    if (body?.order_status === "paid" || event === "paid") return true
-    if (["PURCHASE_APPROVED", "PURCHASE_COMPLETE", "purchase.approved"].includes(event)) return true
-    return false
+function isPaymentConfirmed(event: string): boolean {
+    return ["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PURCHASE_APPROVED", "PURCHASE_COMPLETE", "purchase.approved"].includes(event)
 }
 
-// ── Extrai e-mail do comprador ─────────────────────────────────────────────────
-async function extractBuyer(body: any): Promise<{ email: string; name: string } | null> {
-    // Asaas: { payment: { customer: "cus_xxx", customerEmail: "...", ... } }
-    const payment = body?.payment ?? {}
-
-    // Às vezes o Asaas sandbox inclui o email diretamente no objeto payment
-    if (payment?.customerEmail) {
-        console.log(`[webhook] Email direto do campo payment.customerEmail: ${payment.customerEmail}`)
-        return { email: payment.customerEmail, name: payment.customerName ?? "Membro" }
-    }
-
-    // Tenta buscar via API usando customer ID
-    if (payment?.customer) {
-        console.log(`[webhook] Customer ID: ${payment.customer}`)
-        if (!ASAAS_API_KEY) {
-            console.error("[webhook] ASAAS_API_KEY está VAZIO — não é possível buscar o cliente")
-            return null
-        }
-        return await getAsaasCustomer(payment.customer)
-    }
-
-    // Kiwify: { Customer: { email, full_name } }
-    if (body?.Customer?.email) {
-        return { email: body.Customer.email, name: body.Customer.full_name ?? "Membro" }
-    }
-
-    // Hotmart v2
-    if (body?.data?.buyer?.email) {
-        return { email: body.data.buyer.email, name: body.data.buyer.name ?? "Membro" }
-    }
-
-    console.error("[webhook] Não encontrei e-mail no payload. payment:", JSON.stringify(payment))
-    return null
-}
-
-// ── Validação de token ────────────────────────────────────────────────────────
+// ── Validação de token ─────────────────────────────────────────────────────────
 function isAuthorized(req: NextRequest): boolean {
     if (!WEBHOOK_SECRET) return true
-    const checks = [
+    const tokens = [
         req.headers.get("asaas-access-token"),
         req.headers.get("x-kiwify-token"),
         req.headers.get("x-webhook-token"),
         req.headers.get("authorization")?.replace("Bearer ", ""),
         req.nextUrl.searchParams.get("token"),
-        req.nextUrl.searchParams.get("hottok"),
         req.nextUrl.searchParams.get("accessToken"),
     ]
-    return checks.some(v => v === WEBHOOK_SECRET)
+    return tokens.some(t => t === WEBHOOK_SECRET)
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-    let body: any = {}
+    // Sempre retorna 200 para evitar penalizações do Asaas
     try {
-        body = await req.json()
-        const event = body?.event ?? body?.order_status ?? "unknown"
+        const body = await req.json()
+        const event: string = body?.event ?? body?.Event ?? body?.order_status ?? "unknown"
 
-        // Loga diagnóstico de ambiente e payload completo
-        console.log(`[webhook] ===== NOVA CHAMADA =====`)
-        console.log(`[webhook] Event: "${event}"`)
+        console.log(`[webhook] ===== EVENTO: "${event}" =====`)
         console.log(`[webhook] ASAAS_API_KEY definido: ${!!ASAAS_API_KEY} (len=${ASAAS_API_KEY.length})`)
-        console.log(`[webhook] ASAAS_API_URL: "${ASAAS_API_URL}"`)
-        console.log(`[webhook] Payload completo: ${JSON.stringify(body).slice(0, 800)}`)
+        console.log(`[webhook] Payload: ${JSON.stringify(body).slice(0, 800)}`)
 
         if (!isAuthorized(req)) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+            console.error("[webhook] Token inválido")
+            return NextResponse.json({ ok: true, skipped: true, reason: "unauthorized" })
         }
 
-        if (!isPaymentConfirmed(body)) {
-            console.log(`[webhook] Ignorado — não é confirmação de pagamento: "${event}"`)
-            return NextResponse.json({ ok: true, skipped: true, reason: `event not a confirmed payment: ${event}` })
+        if (!isPaymentConfirmed(event)) {
+            console.log(`[webhook] Ignorado: "${event}" não é confirmação de pagamento`)
+            return NextResponse.json({ ok: true, skipped: true, reason: `not a payment: ${event}` })
         }
 
-        const buyer = await extractBuyer(body)
+        // Extrai buyer
+        let buyer: { email: string; name: string } | null = null
+
+        // Asaas: tenta pelo payment ID
+        const paymentId: string | undefined = body?.payment?.id
+        if (paymentId && ASAAS_API_KEY) {
+            console.log(`[webhook] Buscando payment ${paymentId} via Asaas API`)
+            buyer = await fetchPaymentFromAsaas(paymentId)
+        }
+
+        // Fallback: customerEmail no payload
+        if (!buyer && body?.payment?.customerEmail) {
+            buyer = { email: body.payment.customerEmail, name: body.payment.customerName ?? "Membro" }
+        }
+
+        // Fallback: Kiwify
+        if (!buyer && body?.Customer?.email) {
+            buyer = { email: body.Customer.email, name: body.Customer.full_name ?? "Membro" }
+        }
+
+        // Fallback: Hotmart
+        if (!buyer && body?.data?.buyer?.email) {
+            buyer = { email: body.data.buyer.email, name: body.data.buyer.name ?? "Membro" }
+        }
+
         if (!buyer?.email) {
-            console.error("[webhook] Falha ao extrair email do comprador")
-            return NextResponse.json({ error: "Could not extract buyer email" }, { status: 400 })
+            console.error(`[webhook] Não foi possível extrair email. ASAAS_API_KEY=${!!ASAAS_API_KEY}, paymentId=${paymentId}`)
+            // Retorna 200 mesmo assim para não gerar penalização no Asaas
+            return NextResponse.json({ ok: true, skipped: true, reason: "could not extract email — check ASAAS_API_KEY env var" })
         }
 
         const supabase = getServiceClient()
-
         const { data: existingUsers } = await supabase.auth.admin.listUsers()
-        const already = existingUsers?.users?.find((u: { email?: string }) => u.email === buyer.email)
+        const already = existingUsers?.users?.find((u: { email?: string }) => u.email === buyer!.email)
         if (already) {
             console.log(`[webhook] Usuário já existe: ${buyer.email}`)
             return NextResponse.json({ ok: true, skipped: true, reason: "user already exists" })
         }
 
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agente-teste-three.vercel.app"
-        const { data: invite, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-            buyer.email,
-            {
-                data: { full_name: buyer.name, role: "user" },
-                redirectTo: `${siteUrl}/reset-password`,
-            }
-        )
+        const { data: invite, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(buyer.email, {
+            data: { full_name: buyer.name, role: "user" },
+            redirectTo: `${siteUrl}/reset-password`,
+        })
         if (inviteError) throw inviteError
 
         await supabase.from("profiles").upsert({
@@ -158,10 +149,11 @@ export async function POST(req: NextRequest) {
 
     } catch (err: any) {
         console.error("[webhook] Erro fatal:", err.message)
-        return NextResponse.json({ error: err.message }, { status: 500 })
+        // Retorna 200 para não penalizar no Asaas
+        return NextResponse.json({ ok: true, skipped: true, reason: `internal error: ${err.message}` })
     }
 }
 
 export async function GET() {
-    return NextResponse.json({ ok: true, service: "AviatorPro Payment Webhook v4" })
+    return NextResponse.json({ ok: true, service: "AviatorPro Payment Webhook v5" })
 }
