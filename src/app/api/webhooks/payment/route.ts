@@ -181,7 +181,12 @@ export async function POST(req: NextRequest) {
 
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agente-teste-three.vercel.app"
         const { data: invite, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(buyer.email, {
-            data: { full_name: buyer.name, role: "user" },
+            data: {
+                full_name: buyer.name,
+                role: "user",
+                phone: buyer.phone ?? null,        // → trigger lê e salva no crm_leads
+                plan_name: buyer.planName ?? null, // → trigger lê e salva no crm_leads
+            },
             redirectTo: `${siteUrl}/reset-password`,
         })
         if (inviteError) throw inviteError
@@ -194,25 +199,9 @@ export async function POST(req: NextRequest) {
             created_at: new Date().toISOString(),
         })
 
-        // Cria lead no CRM com telefone e plano
-        const { error: leadError } = await supabase.from("crm_leads").upsert({
-            full_name: buyer.name,
-            email: buyer.email,
-            phone: buyer.phone ?? null,
-            plan_name: buyer.planName ?? "Assinatura",
-            status: "converted",
-            source: "payment",
-            notes: `Pagamento confirmado via Asaas. Plano: ${buyer.planName ?? "N/A"}. Valor: R$${buyer.planValue ?? "?"}`,
-            created_at: new Date().toISOString(),
-        }, { onConflict: "email" })
-
-        if (leadError) {
-            console.warn("[webhook] Erro ao criar lead no CRM:", leadError.message)
-        } else {
-            console.log(`[webhook] ✅ Lead criado no CRM: ${buyer.email}`)
-        }
-
-        console.log(`[webhook] ✅ Convite enviado para: ${buyer.email}`)
+        // O trigger sync_user_to_crm cria o lead automaticamente com phone e plan_name
+        // lidos do raw_user_meta_data (passado acima no campo data: {})
+        console.log(`[webhook] ✅ Convite enviado: ${buyer.email} | Plano: ${buyer.planName} | Tel: ${buyer.phone}`)
         return NextResponse.json({ ok: true, email: buyer.email, phone: buyer.phone, plan: buyer.planName })
 
     } catch (err: any) {
