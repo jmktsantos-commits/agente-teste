@@ -7,12 +7,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { Loader2, MessageSquare, Search, Send, Globe, Phone, Mail, ExternalLink, Users, GitMerge } from "lucide-react"
+import { Loader2, MessageSquare, Search, Send, Globe, Phone, Mail, ExternalLink, Users, GitMerge, ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
@@ -56,7 +55,7 @@ function formatTime(dateStr?: string) {
 }
 
 // ─── Message Panel ────────────────────────────────────────────────────────────
-function MessagePanel({ conversation }: { conversation: ConvWithLead }) {
+function MessagePanel({ conversation, onBack }: { conversation: ConvWithLead; onBack: () => void }) {
     const [messages, setMessages] = useState<DBMessage[]>([])
     const [loading, setLoading] = useState(true)
     const [newMsg, setNewMsg] = useState("")
@@ -93,36 +92,56 @@ function MessagePanel({ conversation }: { conversation: ConvWithLead }) {
         if (!content || sending) return
         setSending(true)
         setNewMsg("")
-        try { await CRMService.sendMessage(conversation.id, content) }
-        catch { setNewMsg(content) }
-        finally { setSending(false) }
+        try {
+            // Use server-side API route with service key so broadcast reaches the lead
+            const res = await fetch("/api/crm/message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ conversation_id: conversation.id, content }),
+            })
+            if (!res.ok) {
+                const err = await res.json()
+                console.error("Failed to send message:", err)
+                setNewMsg(content)
+            }
+        } catch {
+            setNewMsg(content)
+        } finally {
+            setSending(false)
+        }
     }
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 shrink-0">
-                <div className="flex items-center gap-3">
-                    <Avatar className="w-9 h-9">
-                        <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                            {getInitials(conversation.crm_leads.full_name)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <p className="font-semibold text-sm leading-tight">{conversation.crm_leads.full_name}</p>
-                        <p className="text-xs text-muted-foreground">
-                            {conversation.crm_leads.email || conversation.crm_leads.phone || "—"}
-                        </p>
-                    </div>
+            {/* Header */}
+            <div className="flex items-center gap-2 px-3 py-3 border-b bg-muted/30 shrink-0">
+                {/* Back button on mobile */}
+                <button
+                    onClick={onBack}
+                    className="md:hidden p-1.5 rounded-lg hover:bg-muted transition-colors shrink-0"
+                    aria-label="Voltar"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <Avatar className="w-9 h-9 shrink-0">
+                    <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                        {getInitials(conversation.crm_leads.full_name)}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm leading-tight truncate">{conversation.crm_leads.full_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                        {conversation.crm_leads.email || conversation.crm_leads.phone || "—"}
+                    </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    {/* Show affiliate badge if this lead belongs to an affiliate */}
+                <div className="flex items-center gap-1.5 shrink-0">
                     {conversation.crm_leads.affiliates?.btag && (
-                        <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                        <span className="hidden sm:flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 border border-orange-500/20">
                             <GitMerge className="w-3 h-3" />
                             {conversation.crm_leads.affiliates.btag}
                         </span>
                     )}
-                    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", CHANNEL_COLOR[conversation.channel])}>
+                    <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full hidden sm:inline-block", CHANNEL_COLOR[conversation.channel])}>
                         {CHANNEL_LABEL[conversation.channel]}
                     </span>
                     <Link href={`/crm/${conversation.crm_leads.id}`}>
@@ -133,7 +152,7 @@ function MessagePanel({ conversation }: { conversation: ConvWithLead }) {
                 </div>
             </div>
 
-            <ScrollArea className="flex-1 px-4 py-3">
+            <ScrollArea className="flex-1 px-3 py-3">
                 {loading ? (
                     <div className="flex h-40 items-center justify-center"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
                 ) : messages.length === 0 ? (
@@ -143,7 +162,7 @@ function MessagePanel({ conversation }: { conversation: ConvWithLead }) {
                         {messages.map(msg => (
                             <div key={msg.id} className={cn("flex", msg.direction === "outbound" ? "justify-end" : "justify-start")}>
                                 <div className={cn(
-                                    "max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm",
+                                    "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm",
                                     msg.direction === "outbound"
                                         ? "bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-tr-sm"
                                         : "bg-muted text-foreground rounded-tl-sm"
@@ -168,12 +187,12 @@ function MessagePanel({ conversation }: { conversation: ConvWithLead }) {
                     onChange={e => setNewMsg(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && !e.shiftKey && handleSend()}
                     placeholder="Enviar mensagem..."
-                    className="flex-1 h-9 text-sm"
+                    className="flex-1 h-10 text-sm"
                     disabled={sending}
                 />
                 <Button
                     size="icon"
-                    className="h-9 w-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shrink-0"
+                    className="h-10 w-10 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 shrink-0"
                     onClick={handleSend}
                     disabled={sending || !newMsg.trim()}
                 >
@@ -237,11 +256,13 @@ function ConvItem({ conv, active, onClick }: { conv: ConvWithLead; active: boole
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CRMConversationsPage() {
     const [channel, setChannel] = useState<ConversationType | "all">("all")
-    const [originFilter, setOriginFilter] = useState<string>("all") // "all" | "direct" | "affiliate" | btag string
+    const [originFilter, setOriginFilter] = useState<string>("all")
     const [conversations, setConversations] = useState<ConvWithLead[]>([])
     const [selected, setSelected] = useState<ConvWithLead | null>(null)
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
+    // Mobile: show chat panel instead of list
+    const [showChat, setShowChat] = useState(false)
 
     const fetchAll = useCallback(async () => {
         setLoading(true)
@@ -254,7 +275,6 @@ export default function CRMConversationsPage() {
 
     useEffect(() => { fetchAll() }, [fetchAll])
 
-    // All unique affiliate btags for filter dropdown
     const affiliateBtags = useMemo(() => {
         const btags = new Set<string>()
         conversations.forEach(c => {
@@ -263,19 +283,12 @@ export default function CRMConversationsPage() {
         return Array.from(btags).sort()
     }, [conversations])
 
-    // Apply all filters
     const filtered = useMemo(() => {
         let result = conversations
-
-        // Channel filter
         if (channel !== "all") result = result.filter(c => c.channel === channel)
-
-        // Origin filter
         if (originFilter === "direct") result = result.filter(c => !c.crm_leads.affiliate_id)
         else if (originFilter === "affiliate") result = result.filter(c => !!c.crm_leads.affiliate_id)
         else if (originFilter !== "all") result = result.filter(c => c.crm_leads.affiliates?.btag === originFilter)
-
-        // Search
         if (search.trim()) {
             const q = search.toLowerCase()
             result = result.filter(c =>
@@ -284,7 +297,6 @@ export default function CRMConversationsPage() {
                 (c.crm_leads.phone ?? "").toLowerCase().includes(q)
             )
         }
-
         return result
     }, [conversations, channel, originFilter, search])
 
@@ -294,7 +306,6 @@ export default function CRMConversationsPage() {
         }
     }, [filtered])
 
-    // Counts per channel tab
     const counts: Record<string, number> = useMemo(() => ({
         all: conversations.length,
         site_chat: conversations.filter(c => c.channel === "site_chat").length,
@@ -305,17 +316,23 @@ export default function CRMConversationsPage() {
     const directCount = conversations.filter(c => !c.crm_leads.affiliate_id).length
     const affiliateCount = conversations.filter(c => !!c.crm_leads.affiliate_id).length
 
+    const handleSelectConv = (conv: ConvWithLead) => {
+        setSelected(conv)
+        setShowChat(true) // On mobile, navigate to chat view
+    }
+
     return (
-        <div className="flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
-            {/* Channel tabs */}
+        <div className="flex flex-col h-[calc(100vh-140px)] min-h-[500px]">
+            {/* Channel tabs — scrollable horizontally on mobile */}
             <Tabs value={channel} onValueChange={v => setChannel(v as ConversationType | "all")} className="mb-0">
-                <TabsList className="mb-0 rounded-b-none border-b-0">
+                <TabsList className="mb-0 rounded-b-none border-b-0 w-full overflow-x-auto flex-nowrap justify-start h-auto p-1 gap-0.5">
                     {CHANNEL_TABS.map(tab => (
-                        <TabsTrigger key={tab.key} value={tab.key} className="gap-1.5">
+                        <TabsTrigger key={tab.key} value={tab.key}
+                            className="gap-1 text-xs sm:text-sm py-2 px-2.5 sm:px-3 whitespace-nowrap shrink-0">
                             {tab.icon}
-                            {tab.label}
+                            <span className="hidden xs:inline sm:inline">{tab.label}</span>
                             {counts[tab.key] > 0 && (
-                                <span className="ml-1 bg-muted text-muted-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5">
+                                <span className="ml-0.5 bg-muted text-muted-foreground text-[10px] font-bold rounded-full px-1.5 py-0.5">
                                     {counts[tab.key]}
                                 </span>
                             )}
@@ -325,10 +342,19 @@ export default function CRMConversationsPage() {
             </Tabs>
 
             {/* Main panel */}
-            <div className="flex flex-1 border rounded-b-lg rounded-tr-lg overflow-hidden">
-                {/* Left: conversation list */}
-                <div className="w-72 shrink-0 border-r flex flex-col bg-background">
-                    {/* Search */}
+            <div className="flex flex-1 border rounded-b-lg rounded-tr-lg overflow-hidden relative">
+
+                {/* Left: conversation list — hidden on mobile when chat is open */}
+                <div className={cn(
+                    "flex flex-col bg-background border-r transition-all duration-200",
+                    // Desktop: always visible at fixed width
+                    "md:w-72 md:shrink-0 md:flex",
+                    // Mobile: full width when showing list, hidden when showing chat
+                    showChat
+                        ? "hidden md:flex"
+                        : "flex w-full md:w-72"
+                )}>
+                    {/* Search + filter */}
                     <div className="px-3 py-2 border-b space-y-2">
                         <div className="relative">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -336,7 +362,6 @@ export default function CRMConversationsPage() {
                                 onChange={e => setSearch(e.target.value)} className="pl-8 h-8 text-sm" />
                         </div>
 
-                        {/* Origin filter */}
                         <Select value={originFilter} onValueChange={setOriginFilter}>
                             <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
@@ -391,7 +416,7 @@ export default function CRMConversationsPage() {
                                         key={conv.id}
                                         conv={conv}
                                         active={selected?.id === conv.id}
-                                        onClick={() => setSelected(conv)}
+                                        onClick={() => handleSelectConv(conv)}
                                     />
                                 ))}
                             </div>
@@ -399,10 +424,18 @@ export default function CRMConversationsPage() {
                     </ScrollArea>
                 </div>
 
-                {/* Right: message history */}
-                <div className="flex-1 flex flex-col bg-background">
+                {/* Right: message panel — full screen on mobile when active */}
+                <div className={cn(
+                    "flex-1 flex flex-col bg-background",
+                    // Mobile: full width, shown only when chat is open
+                    showChat ? "flex w-full" : "hidden md:flex"
+                )}>
                     {selected ? (
-                        <MessagePanel key={selected.id} conversation={selected} />
+                        <MessagePanel
+                            key={selected.id}
+                            conversation={selected}
+                            onBack={() => setShowChat(false)}
+                        />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
                             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
