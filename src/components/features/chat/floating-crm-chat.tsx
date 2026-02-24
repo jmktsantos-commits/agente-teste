@@ -524,29 +524,34 @@ export function FloatingCRMChat() {
     useEffect(() => {
         // Defer auth check by 1s so it doesn't block page first paint
         const timer = setTimeout(async () => {
-            const supabase = createClient()
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
+            try {
+                const supabase = createClient()
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) return
+
+                // Use JWT app_metadata.role (no extra DB query, never fails)
+                // Admins and affiliates use the CRM panel — they don't need the user-facing chat
+                const role: string = (user.app_metadata?.role as string) ?? "user"
+                if (role === "admin" || role === "affiliate") return
+
+                // Also try profiles table as fallback, but ignore any errors
+                try {
+                    const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("role")
+                        .eq("id", user.id)
+                        .maybeSingle()
+                    const profileRole: string = (profile as any)?.role ?? "user"
+                    if (profileRole === "admin" || profileRole === "affiliate") return
+                } catch {
+                    // profiles query failed, default to showing chat
+                }
+
+                setUserId(user.id)
+            } finally {
+                // Always mark as ready so the component doesn't silently hang
                 setReady(true)
-                return
             }
-
-            // Check profile role — admins and affiliates manage the CRM, they shouldn't see the user-facing chat
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("role")
-                .eq("id", user.id)
-                .maybeSingle()
-
-            const role = profile?.role ?? "user"
-            // Only show floating chat for regular users (not admin or affiliate)
-            if (role === "admin" || role === "affiliate") {
-                setReady(true)
-                return // userId stays null → widget won't render
-            }
-
-            setUserId(user.id)
-            setReady(true)
         }, 1000)
         return () => clearTimeout(timer)
     }, [])
