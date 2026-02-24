@@ -526,7 +526,26 @@ export function FloatingCRMChat() {
         const timer = setTimeout(async () => {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
-            setUserId(user?.id ?? null)
+            if (!user) {
+                setReady(true)
+                return
+            }
+
+            // Check profile role — admins and affiliates manage the CRM, they shouldn't see the user-facing chat
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("role")
+                .eq("id", user.id)
+                .maybeSingle()
+
+            const role = profile?.role ?? "user"
+            // Only show floating chat for regular users (not admin or affiliate)
+            if (role === "admin" || role === "affiliate") {
+                setReady(true)
+                return // userId stays null → widget won't render
+            }
+
+            setUserId(user.id)
             setReady(true)
         }, 1000)
         return () => clearTimeout(timer)
