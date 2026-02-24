@@ -34,14 +34,15 @@ export const CASINO_CONFIGS: Record<CasinoPlatform, CasinoConfig> = {
         affiliateUrl: 'https://go.aff.esportiva.bet/8ywkf5b2?utm_campaign=site',
         previewImage: '/images/casino/esportivabet-preview.jpg',
         features: [
-            'Aviator com altos multiplicadores',
-            'Saques rápidos via PIX',
+            'CASHBACK EXCLUSIVO para o AVIATOR',
+            'Saques instantâneos via PIX',
             'Plataforma 100% brasileira',
-            'Suporte em português'
+            'Plataforma Regulamentada pelo Governo',
+            'Bonificação para NÍVEIS de Jogadores'
         ],
         bonus: 'Bônus de boas-vindas exclusivo',
         minDeposit: 'R$ 10',
-        paymentMethods: ['PIX', 'Boleto', 'Cartão de Crédito'],
+        paymentMethods: ['PIX'],
         description: 'Plataforma brasileira especializada em jogos crash. Acesse o Aviator com bônus exclusivo.',
         color: {
             primary: '#16A34A',
@@ -61,9 +62,9 @@ export const CASINO_CONFIGS: Record<CasinoPlatform, CasinoConfig> = {
             'Suporte 24/7 em português',
             'App mobile nativo'
         ],
-        bonus: 'Bônus de 200% até R$ 1.000',
+        bonus: 'Bônus de boas-vindas exclusivo',
         minDeposit: 'R$ 20',
-        paymentMethods: ['PIX', 'Boleto', 'Cartão de Crédito'],
+        paymentMethods: ['PIX'],
         description: 'Plataforma líder em jogos crash com foco em Aviator. Interface brasileira e pagamentos rápidos.',
         color: {
             primary: '#FF6B35',
@@ -83,9 +84,9 @@ export const CASINO_CONFIGS: Record<CasinoPlatform, CasinoConfig> = {
             'Torneios diários de Aviator',
             'Odds competitivas'
         ],
-        bonus: 'Bônus de 150% até R$ 500 + 50 giros grátis',
+        bonus: 'Bônus de boas-vindas exclusivo',
         minDeposit: 'R$ 10',
-        paymentMethods: ['PIX', 'Criptomoedas', 'Cartão'],
+        paymentMethods: ['PIX'],
         description: 'Casa de apostas completa com foco em experiência premium. Melhor para jogadores VIP.',
         color: {
             primary: '#4F46E5',
