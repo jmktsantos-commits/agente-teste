@@ -527,30 +527,11 @@ export function FloatingCRMChat() {
             try {
                 const supabase = createClient()
                 const { data: { user } } = await supabase.auth.getUser()
-                if (!user) return
-
-                // Use JWT app_metadata.role (no extra DB query, never fails)
-                // Admins and affiliates use the CRM panel — they don't need the user-facing chat
-                const role: string = (user.app_metadata?.role as string) ?? "user"
-                if (role === "admin" || role === "affiliate") return
-
-                // Also try profiles table as fallback, but ignore any errors
-                try {
-                    const { data: profile } = await supabase
-                        .from("profiles")
-                        .select("role")
-                        .eq("id", user.id)
-                        .maybeSingle()
-                    const profileRole: string = (profile as any)?.role ?? "user"
-                    if (profileRole === "admin" || profileRole === "affiliate") return
-                } catch {
-                    // profiles query failed, default to showing chat
-                }
-
-                setUserId(user.id)
+                if (user?.id) setUserId(user.id)
+            } catch {
+                // Auth failed — keep userId null, chat won't render
             } finally {
-                // Always mark as ready so the component doesn't silently hang
-                setReady(true)
+                setReady(true) // always called, no matter what
             }
         }, 1000)
         return () => clearTimeout(timer)
