@@ -180,12 +180,14 @@ export async function POST(req: NextRequest) {
         }
 
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://agente-teste-three.vercel.app"
+
+        // NÃO passar plan_name no metadata — o trigger usa ENUM crm_source_type que
+        // pode ainda não ter 'payment'. Passamos só full_name/role para o trigger
+        // usar source='organic' (seguro). Depois do invite atualizamos o lead.
         const { data: invite, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(buyer.email, {
             data: {
                 full_name: buyer.name,
                 role: "user",
-                phone: buyer.phone ?? null,        // → trigger lê e salva no crm_leads
-                plan_name: buyer.planName ?? null, // → trigger lê e salva no crm_leads
             },
             redirectTo: `${siteUrl}/reset-password`,
         })
@@ -199,8 +201,23 @@ export async function POST(req: NextRequest) {
             created_at: new Date().toISOString(),
         })
 
-        // O trigger sync_user_to_crm cria o lead automaticamente com phone e plan_name
-        // lidos do raw_user_meta_data (passado acima no campo data: {})
+        // Atualiza o lead criado pelo trigger com phone, plan e status=converted
+        // Não altera 'source' para evitar problema de ENUM (requer SQL fix_crm_lead_trigger.sql)
+        const { error: leadUpdateError } = await supabase
+            .from("crm_leads")
+            .update({
+                phone: buyer.phone ?? null,
+                plan_name: buyer.planName ?? null,
+                status: "converted",
+                notes: `Pagamento confirmado. Plano: ${buyer.planName ?? "N/A"}. Valor: R$${buyer.planValue ?? "?"}`,
+            })
+            .eq("email", buyer.email)
+
+        if (leadUpdateError) {
+            console.warn("[webhook] Aviso: lead update falhou:", leadUpdateError.message)
+        } else {
+            console.log(`[webhook] Lead atualizado com phone e plano: ${buyer.email}`)
+        }
         console.log(`[webhook] ✅ Convite enviado: ${buyer.email} | Plano: ${buyer.planName} | Tel: ${buyer.phone}`)
         return NextResponse.json({ ok: true, email: buyer.email, phone: buyer.phone, plan: buyer.planName })
 
@@ -211,5 +228,5 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-    return NextResponse.json({ ok: true, service: "AviatorPro Payment Webhook v6" })
+    return NextResponse.json({ ok: true, service: "AviatorPro Payment Webhook v7" })
 }
