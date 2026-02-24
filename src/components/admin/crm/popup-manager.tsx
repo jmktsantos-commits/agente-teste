@@ -212,7 +212,7 @@ export function PopupManager() {
     return (
         <div className="flex flex-col gap-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow">
                         <Radio className="w-5 h-5 text-white" />
@@ -353,18 +353,18 @@ export function PopupManager() {
                         {/* Position */}
                         <div className="border rounded-xl p-4">
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Posição no site</p>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 {POSITION_OPTIONS.map(opt => (
                                     <button key={opt.value} onClick={() => setPosition(opt.value)}
                                         className={cn(
-                                            "flex flex-col items-center gap-1.5 px-2 py-3 rounded-lg border-2 text-xs font-medium transition-all",
+                                            "flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-lg border-2 text-xs font-medium transition-all min-w-0",
                                             position === opt.value
                                                 ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300"
                                                 : "border-border text-muted-foreground hover:bg-muted/50"
                                         )}>
                                         {opt.icon}
-                                        <span className="font-semibold">{opt.label}</span>
-                                        <span className="text-[10px] opacity-70">{opt.desc}</span>
+                                        <span className="font-semibold text-center leading-tight truncate w-full">{opt.label}</span>
+                                        <span className="text-[10px] opacity-70 text-center leading-tight">{opt.desc}</span>
                                     </button>
                                 ))}
                             </div>
@@ -541,8 +541,8 @@ export function PopupManager() {
                                             )}
 
                                             {/* Row 3: time + toggle */}
-                                            <div className="flex items-center justify-between pt-1">
-                                                <span className="text-[10px] text-muted-foreground">
+                                            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 min-w-0">
+                                                <span className="text-[10px] text-muted-foreground truncate">
                                                     {p.scheduled_at
                                                         ? `Agendado: ${format(new Date(p.scheduled_at), "dd/MM/yy HH:mm", { locale: ptBR })}`
                                                         : formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })

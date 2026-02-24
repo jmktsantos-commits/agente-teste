@@ -238,13 +238,13 @@ export default function CRMBroadcastPage() {
     return (
         <div className="flex flex-col gap-6 pb-8">
             {/* Sub-tabs */}
-            <Tabs defaultValue="mass">
-                <TabsList className="mb-4">
-                    <TabsTrigger value="mass" className="gap-1.5">
-                        <Radio className="w-3.5 h-3.5" /> Transmissão em Massa
+            <Tabs defaultValue="mass" className="w-full">
+                <TabsList className="mb-4 w-full flex-wrap h-auto justify-start p-1 bg-muted/50 gap-1 rounded-lg">
+                    <TabsTrigger value="mass" className="gap-1.5 flex-1 min-w-[140px] text-xs sm:text-sm py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        <Radio className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Transmissão em Massa</span>
                     </TabsTrigger>
-                    <TabsTrigger value="popups" className="gap-1.5">
-                        <MousePointerClick className="w-3.5 h-3.5" /> Pop-ups do Site
+                    <TabsTrigger value="popups" className="gap-1.5 flex-1 min-w-[140px] text-xs sm:text-sm py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                        <MousePointerClick className="w-3.5 h-3.5 shrink-0" /> <span className="truncate">Pop-ups do Site</span>
                     </TabsTrigger>
                 </TabsList>
 
