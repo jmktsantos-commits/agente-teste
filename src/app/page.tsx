@@ -9,7 +9,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const CHECKOUT_URL = process.env.NEXT_PUBLIC_CHECKOUT_URL || "#planos"
+const CHECKOUT_MENSAL = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "#planos"
+const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "#planos"
 
 // ── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
@@ -323,7 +324,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <a href={CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
+              <a href={CHECKOUT_MENSAL} target="_blank" rel="noopener noreferrer">
                 <button className="w-full h-12 rounded-xl border border-purple-500/50 text-white font-bold hover:bg-purple-500/10 transition-colors">
                   Assinar Mensal
                 </button>
@@ -361,7 +362,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <a href={CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
+              <a href={CHECKOUT_ANUAL} target="_blank" rel="noopener noreferrer">
                 <button className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-black text-lg hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg shadow-purple-900/50 flex items-center justify-center gap-2">
                   Garantir Acesso Anual <ArrowRight className="w-5 h-5" />
                 </button>
