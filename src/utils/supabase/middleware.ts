@@ -2,8 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Paths that bypass the profile check entirely
-const AUTH_FREE_PATHS = ['/login', '/registro', '/auth']
+// Paths que nunca redirecionam para login (acesso público)
+const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password']
+const PUBLIC_EXACT_PATHS = ['/'] // Landing page — acesso público sem login
+
 
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
@@ -29,7 +31,9 @@ export async function updateSession(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    const isAuthFreePath = AUTH_FREE_PATHS.some(p => request.nextUrl.pathname.startsWith(p))
+    const isAuthFreePath =
+        PUBLIC_EXACT_PATHS.includes(request.nextUrl.pathname) ||
+        AUTH_FREE_PATHS.some(p => request.nextUrl.pathname.startsWith(p))
     // API routes handle their own auth (service role) — never strip their session cookies
     const isApiRoute = request.nextUrl.pathname.startsWith('/api')
 
