@@ -317,7 +317,7 @@ export default function LandingPage() {
                 <p className="text-xs text-slate-500 mt-1">Cancele quando quiser</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                {["Acesso à Plataforma", "Histórico e Análise de Velas Altas", "Gestão de Banca Inteligente", "Suporte via Chat"].map(f => (
+                {["Acesso à Plataforma", "Histórico e Análise de Velas Altas", "Gestão de Banca Inteligente", "📚 Curso Avançado Aviator", "Suporte via Chat"].map(f => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
                     <CheckCircle className="w-4 h-4 text-green-400/50 shrink-0" /> {f}
                   </li>
@@ -368,6 +368,7 @@ export default function LandingPage() {
                     { text: "Acesso Total à Plataforma", highlight: false },
                     { text: "Histórico e Análise de Velas Altas", highlight: false },
                     { text: "Gestão de Banca Inteligente", highlight: false },
+                    { text: "📚 Curso Avançado Aviator", highlight: false },
                     { text: "🟢 Grupo VIP Exclusivo no WhatsApp", highlight: true },
                     { text: "Suporte Direto com Especialista", highlight: true },
                   ].map(({ text, highlight }) => (
@@ -422,6 +423,7 @@ export default function LandingPage() {
                   { text: "Acesso Total à Plataforma", gold: false },
                   { text: "Histórico e Análise de Velas Altas", gold: false },
                   { text: "Gestão de Banca Inteligente", gold: false },
+                  { text: "📚 Curso Avançado Aviator", gold: false },
                   { text: "🟢 Grupo VIP Exclusivo no WhatsApp", gold: false },
                   { text: "Suporte Direto com Especialista", gold: false },
                   { text: "⭐ Mentoria Particular (6 Encontros/Ano)", gold: true },
