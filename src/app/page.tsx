@@ -142,7 +142,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Sinais em tempo real com <strong className="text-white">95% de assertividade</strong>, gestão de banca profissional
+            Sinais em tempo real com <strong className="text-white">alta assertividade</strong>, gestão de banca profissional
             e comunidade VIP de lucros. Acesso exclusivo para membros.
           </p>
 
@@ -317,7 +317,7 @@ export default function LandingPage() {
                 <p className="text-xs text-slate-500 mt-1">Cancele quando quiser</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                {["Acesso à Plataforma", "Histórico e Velas Altas", "Gestão de Banca Inteligente", "Suporte via Chat"].map(f => (
+                {["Acesso à Plataforma", "Histórico e Análise de Velas Altas", "Gestão de Banca Inteligente", "Suporte via Chat"].map(f => (
                   <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
                     <CheckCircle className="w-4 h-4 text-green-400/50 shrink-0" /> {f}
                   </li>
@@ -366,7 +366,7 @@ export default function LandingPage() {
                 <ul className="space-y-3 mb-8 flex-1">
                   {[
                     { text: "Acesso Total à Plataforma", highlight: false },
-                    { text: "Histórico e Velas Altas", highlight: false },
+                    { text: "Histórico e Análise de Velas Altas", highlight: false },
                     { text: "Gestão de Banca Inteligente", highlight: false },
                     { text: "🟢 Grupo VIP Exclusivo no WhatsApp", highlight: true },
                     { text: "Suporte Direto com Especialista", highlight: true },
@@ -420,7 +420,7 @@ export default function LandingPage() {
               <ul className="space-y-3 mb-8 flex-1 relative z-10">
                 {[
                   { text: "Acesso Total à Plataforma", gold: false },
-                  { text: "Histórico e Velas Altas", gold: false },
+                  { text: "Histórico e Análise de Velas Altas", gold: false },
                   { text: "Gestão de Banca Inteligente", gold: false },
                   { text: "🟢 Grupo VIP Exclusivo no WhatsApp", gold: false },
                   { text: "Suporte Direto com Especialista", gold: false },
