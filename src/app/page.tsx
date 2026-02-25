@@ -9,8 +9,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const CHECKOUT_MENSAL = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/831neegpw7t2n492"
+const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/831neegpw7t2n492"
 const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/13beu9bmazofoy9i"
+const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK || "#planos"
 
 // ── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
@@ -290,8 +291,8 @@ export default function LandingPage() {
       {/* ── PRICING ─────────────────────────────────────────────────────── */}
       <section id="planos" className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/10 via-transparent to-transparent pointer-events-none" />
-        <div className="container mx-auto px-6 max-w-4xl relative z-10">
-          <div className="text-center mb-12">
+        <div className="container mx-auto px-6 max-w-6xl relative z-10">
+          <div className="text-center mb-14">
             <span className="text-purple-400 text-sm font-semibold uppercase tracking-widest">Planos</span>
             <h2 className="text-3xl md:text-4xl font-black mt-2">Escolha seu plano</h2>
             <p className="text-slate-400 mt-3 text-sm">
@@ -299,82 +300,149 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Mensal */}
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col">
+          {/* 3 Cards — Ancoragem de Preço */}
+          <div className="flex flex-col md:flex-row items-stretch justify-center gap-4">
+
+            {/* ── STARTER (Ancoragem inferior) ── */}
+            <div className="w-full md:w-[29%] bg-white/[0.04] border border-white/10 rounded-2xl p-7 flex flex-col">
               <div className="mb-6">
-                <p className="text-slate-400 text-sm font-medium uppercase tracking-widest mb-2">Mensal</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-4xl font-black">R$97</span>
-                  <span className="text-slate-400 mb-1">/mês</span>
+                <span className="inline-block bg-white/10 text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+                  STARTER — O Teste
+                </span>
+                <p className="text-slate-500 text-xs mb-5">Conheça a plataforma sem compromisso</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black text-white">R$47</span>
+                  <span className="text-slate-400 mb-1.5 text-sm">/mês</span>
                 </div>
-                <p className="text-sm text-slate-500 mt-1">Cancele quando quiser</p>
+                <p className="text-xs text-slate-500 mt-1">Cancele quando quiser</p>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                {[
-                  "Sinais de IA em tempo real",
-                  "Histórico completo de rodadas",
-                  "Comunidade VIP",
-                  "Suporte por chat",
-                  "Acesso a todas as casas",
-                ].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-slate-300">
-                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                    {f}
+                {["Acesso à Plataforma", "Histórico e Velas Altas", "Gestão de Banca Inteligente", "Suporte via Chat"].map(f => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm text-slate-400">
+                    <CheckCircle className="w-4 h-4 text-green-400/50 shrink-0" /> {f}
                   </li>
                 ))}
+                <li className="flex items-center gap-2.5 text-sm text-slate-600">
+                  <span className="w-4 h-4 shrink-0 text-center font-bold text-slate-700">✕</span>
+                  <span className="line-through">Sinais no WhatsApp</span>
+                </li>
+                <li className="flex items-center gap-2.5 text-sm text-slate-600">
+                  <span className="w-4 h-4 shrink-0 text-center font-bold text-slate-700">✕</span>
+                  <span className="line-through">Mentoria Particular</span>
+                </li>
               </ul>
-              <a href={CHECKOUT_MENSAL} target="_blank" rel="noopener noreferrer">
-                <button className="w-full h-12 rounded-xl border border-purple-500/50 text-white font-bold hover:bg-purple-500/10 transition-colors">
-                  Assinar Mensal
+              <a href={CHECKOUT_STARTER} target="_blank" rel="noopener noreferrer">
+                <button className="w-full h-12 rounded-xl border border-white/20 text-slate-300 font-bold hover:bg-white/5 transition-colors text-sm">
+                  Começar com Starter
                 </button>
               </a>
             </div>
 
-            {/* Anual — Destaque */}
-            <div className="relative bg-gradient-to-br from-purple-900/60 to-pink-900/40 border border-purple-500/40 rounded-2xl p-8 flex flex-col shadow-xl shadow-purple-900/20">
-              <div className="absolute -top-3 right-6 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-xs font-black px-4 py-1 rounded-full">
-                MAIS POPULAR
-              </div>
-              <div className="mb-6">
-                <p className="text-purple-300 text-sm font-medium uppercase tracking-widest mb-2">Anual <span className="text-amber-400 normal-case">— Economize 40%</span></p>
-                <div className="flex items-end gap-2">
-                  <span className="text-slate-400 text-lg line-through">R$1.164</span>
+            {/* ── ANUAL — O Recomendado (card 10% maior, neon verde) ── */}
+            <div className="relative w-full md:w-[40%] flex flex-col md:-mt-6 md:-mb-6">
+              {/* Glow externo verde */}
+              <div className="absolute -inset-1 rounded-[20px] bg-gradient-to-b from-green-400/25 to-emerald-600/15 blur-xl pointer-events-none" />
+              <div className="relative bg-gradient-to-br from-[#0d2015] via-[#0a1a10] to-[#071510] border-2 border-green-400/60 rounded-2xl p-8 flex flex-col h-full shadow-2xl shadow-green-950/50">
+                {/* Badge "MAIS ESCOLHIDO" */}
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+                  <div className="bg-gradient-to-r from-green-400 to-emerald-400 text-black text-xs font-black px-6 py-2 rounded-full whitespace-nowrap shadow-lg shadow-green-900/60">
+                    ✦ MAIS ESCOLHIDO ✦
+                  </div>
                 </div>
-                <div className="flex items-end gap-2">
-                  <span className="text-5xl font-black">R$697</span>
-                  <span className="text-slate-400 mb-1">/ano</span>
+
+                <div className="pt-3 mb-6">
+                  <span className="inline-block bg-green-500/20 text-green-300 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+                    ANUAL — O Recomendado
+                  </span>
+                  <p className="text-slate-300 text-xs mb-5">Sinais no WhatsApp + melhor custo-benefício</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-5xl font-black text-white leading-none">R$397</span>
+                    <span className="text-slate-400 mb-1.5 text-sm">/ano</span>
+                  </div>
+                  <p className="text-green-400 text-sm font-bold mt-2">Equivale a apenas R$33,08 por mês</p>
+                  <p className="text-xs text-slate-500 mt-1">Economize R$167 vs. plano mensal</p>
                 </div>
-                <p className="text-sm text-green-400 mt-1 font-medium">= R$58/mês · você economiza R$467</p>
+
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    { text: "Acesso Total à Plataforma", highlight: false },
+                    { text: "Histórico e Velas Altas", highlight: false },
+                    { text: "Gestão de Banca Inteligente", highlight: false },
+                    { text: "🟢 Grupo VIP Exclusivo no WhatsApp", highlight: true },
+                    { text: "Suporte Direto com Especialista", highlight: true },
+                  ].map(({ text, highlight }) => (
+                    <li key={text} className={cn("flex items-center gap-2.5 text-sm", highlight ? "text-white font-semibold" : "text-slate-300")}>
+                      <CheckCircle className={cn("w-4 h-4 shrink-0", highlight ? "text-green-400" : "text-green-400/60")} /> {text}
+                    </li>
+                  ))}
+                  <li className="flex items-center gap-2.5 text-sm text-slate-600">
+                    <span className="w-4 h-4 shrink-0 text-center font-bold text-slate-700">✕</span>
+                    <span className="line-through">Mentoria Particular</span>
+                  </li>
+                </ul>
+
+                <a href={CHECKOUT_ANUAL} target="_blank" rel="noopener noreferrer">
+                  <button className="w-full py-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 text-black font-black text-base hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg shadow-green-900/50 flex items-center justify-center gap-2">
+                    Garantir Acesso Anual <ArrowRight className="w-5 h-5" />
+                  </button>
+                </a>
+                <p className="text-xs text-center text-slate-500 mt-3">
+                  🔒 Pagamento seguro · PIX / Cartão / Boleto
+                </p>
               </div>
-              <ul className="space-y-3 mb-8 flex-1">
+            </div>
+
+            {/* ── BLACK — A Elite (âncora de percepção de valor) ── */}
+            <div className="relative w-full md:w-[29%] bg-gradient-to-br from-zinc-950 via-neutral-900 to-zinc-950 border border-amber-500/50 rounded-2xl p-7 flex flex-col overflow-hidden">
+              {/* Gold shimmer top */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/80 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-900/10 via-transparent to-transparent pointer-events-none" />
+
+              {/* Badge ELITE */}
+              <div className="absolute top-5 right-5">
+                <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[10px] font-black px-2.5 py-1 rounded-full">
+                  ◆ ELITE
+                </span>
+              </div>
+
+              <div className="mb-6 relative z-10">
+                <span className="inline-block bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4">
+                  BLACK — A Elite
+                </span>
+                <p className="text-slate-400 text-xs mb-5">Mentoria exclusiva + acesso total</p>
+                <div className="flex items-end gap-1">
+                  <span className="text-4xl font-black text-white">R$997</span>
+                  <span className="text-slate-400 mb-1.5 text-sm">/ano</span>
+                </div>
+                <p className="text-amber-400 text-xs font-medium mt-2">~R$83,08 por mês</p>
+              </div>
+
+              <ul className="space-y-3 mb-8 flex-1 relative z-10">
                 {[
-                  "Tudo do plano Mensal",
-                  "Gestão de banca premium",
-                  "Acesso antecipado a novidades",
-                  "Suporte prioritário 24/7",
-                  "Badge VIP exclusivo",
-                  "1 mês grátis de bônus",
-                ].map(f => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm text-white">
-                    <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
-                    {f}
+                  { text: "Acesso Total à Plataforma", gold: false },
+                  { text: "Histórico e Velas Altas", gold: false },
+                  { text: "Gestão de Banca Inteligente", gold: false },
+                  { text: "🟢 Grupo VIP Exclusivo no WhatsApp", gold: false },
+                  { text: "Suporte Direto com Especialista", gold: false },
+                  { text: "⭐ Mentoria Particular (6 Encontros/Ano)", gold: true },
+                ].map(({ text, gold }) => (
+                  <li key={text} className={cn("flex items-center gap-2.5 text-sm", gold ? "text-amber-200 font-semibold" : "text-slate-300")}>
+                    <CheckCircle className={cn("w-4 h-4 shrink-0", gold ? "text-amber-400" : "text-amber-400/60")} /> {text}
                   </li>
                 ))}
               </ul>
-              <a href={CHECKOUT_ANUAL} target="_blank" rel="noopener noreferrer">
-                <button className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-black text-lg hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg shadow-purple-900/50 flex items-center justify-center gap-2">
-                  Garantir Acesso Anual <ArrowRight className="w-5 h-5" />
+
+              <a href={CHECKOUT_BLACK} target="_blank" rel="noopener noreferrer" className="relative z-10">
+                <button className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-black font-black text-sm hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2">
+                  Quero o Black Elite
                 </button>
               </a>
-              <p className="text-xs text-center text-slate-500 mt-3">
-                🔒 Pagamento seguro · PIX / Cartão / Boleto
-              </p>
             </div>
-          </div>
+
+          </div>{/* fim dos 3 cards */}
 
           {/* Guarantee */}
-          <div className="mt-10 flex items-center justify-center gap-4 bg-green-500/5 border border-green-500/20 rounded-2xl p-6">
+          <div className="mt-12 flex items-center justify-center gap-4 bg-green-500/5 border border-green-500/20 rounded-2xl p-6">
             <ShieldCheck className="w-10 h-10 text-green-400 shrink-0" />
             <div>
               <p className="font-bold text-white">Garantia de 7 dias</p>
