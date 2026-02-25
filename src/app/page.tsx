@@ -9,9 +9,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/831neegpw7t2n492"
-const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/13beu9bmazofoy9i"
-const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK || "#planos"
+const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/9g65d6vkig15fsu7"
+const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/jtot6ozwz20sgnrm"
+const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK || "https://sandbox.asaas.com/c/wdj5s6op557z9txk"
 
 // ── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
