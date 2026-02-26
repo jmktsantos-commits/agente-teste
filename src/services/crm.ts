@@ -18,6 +18,11 @@ export interface DBLead {
     last_contact_at?: string
     last_seen_at?: string
     created_at: string
+    // Trial fields (joined from profiles)
+    profile_plan?: string          // 'free' | 'trial' | 'pro' | 'vip'
+    trial_expires_at?: string      // quando o trial vence
+    trial_activated_at?: string    // quando o trial foi ativado
+    partner_ref?: string           // parceiro de origem do trial
 }
 
 export type ConversationType = 'whatsapp' | 'email' | 'site_chat'
@@ -60,7 +65,32 @@ export const CRMService = {
 
         const { data, error, count } = await query
         if (error) throw error
-        return { leads: data as DBLead[], total: count || 0 }
+
+        // Enriquecer com dados de trial do profiles (join client-side via user_id)
+        const leads = data as DBLead[]
+        const userIds = leads.map(l => l.user_id).filter(Boolean) as string[]
+
+        if (userIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, plan, trial_expires_at, trial_activated_at, partner_ref')
+                .in('id', userIds)
+
+            if (profiles) {
+                const profileMap = new Map(profiles.map((p: any) => [p.id, p]))
+                leads.forEach((lead: DBLead) => {
+                    const profile = lead.user_id ? profileMap.get(lead.user_id) : null
+                    if (profile) {
+                        lead.profile_plan = profile.plan
+                        lead.trial_expires_at = profile.trial_expires_at
+                        lead.trial_activated_at = profile.trial_activated_at
+                        lead.partner_ref = profile.partner_ref
+                    }
+                })
+            }
+        }
+
+        return { leads, total: count || 0 }
     },
 
     async getLead(id: string) {

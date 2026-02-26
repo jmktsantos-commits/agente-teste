@@ -5,7 +5,7 @@ import { DBLead } from "@/services/crm"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, MessageCircle, Mail, Phone, CreditCard } from "lucide-react"
+import { MoreHorizontal, MessageCircle, Mail, Phone, CreditCard, Clock, Gift } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 
@@ -103,6 +103,60 @@ export const columns: ColumnDef<DBLead>[] = [
                 lost: "destructive",
             }
             return <Badge variant={variants[status] || "outline"}>{status.toUpperCase()}</Badge>
+        },
+    },
+    {
+        id: "trial",
+        header: "Trial",
+        cell: ({ row }) => {
+            const plan = row.original.profile_plan
+            const expiresAt = row.original.trial_expires_at
+            const partnerRef = row.original.partner_ref
+
+            // Sem trial
+            if (!expiresAt) {
+                return <span className="text-xs text-muted-foreground">—</span>
+            }
+
+            const expiresDate = new Date(expiresAt)
+            const now = new Date()
+            const isActive = plan === "trial" && expiresDate > now
+            const isExpired = expiresDate <= now
+
+            const diffMs = expiresDate.getTime() - now.getTime()
+            const hoursLeft = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)))
+            const minutesLeft = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)))
+
+            const expiredDateStr = expiresDate.toLocaleDateString("pt-BR", {
+                day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+            })
+
+            return (
+                <div className="flex flex-col gap-1">
+                    {isActive && (
+                        <div className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3 text-emerald-500 shrink-0" />
+                            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                {hoursLeft}h {minutesLeft}m restantes
+                            </span>
+                        </div>
+                    )}
+                    {isExpired && (
+                        <div className="flex items-center gap-1.5">
+                            <Clock className="h-3 w-3 text-orange-500 shrink-0" />
+                            <span className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+                                Expirado {expiredDateStr}
+                            </span>
+                        </div>
+                    )}
+                    {partnerRef && (
+                        <div className="flex items-center gap-1">
+                            <Gift className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{partnerRef}</span>
+                        </div>
+                    )}
+                </div>
+            )
         },
     },
     {

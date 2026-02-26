@@ -1,6 +1,7 @@
 import { Sidebar, MobileNav } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { FloatingClock } from "@/components/features/layout/floating-clock"
+import { TrialBanner } from "@/components/features/trial/trial-banner"
 
 export default function ProtectedLayout({
     children,
@@ -14,6 +15,7 @@ export default function ProtectedLayout({
             </div>
             <main className="md:pl-72 pb-16 md:pb-0 h-full">
                 <Header />
+                <TrialBanner />
                 <div className="h-full p-6 space-y-4">
                     {children}
                 </div>

@@ -1,0 +1,124 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "trial-notification",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trial",
+            "name": "Webhook — Trial Notification",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "trial-notification"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "cond-half-way",
+                            "leftValue": "={{ $json.body.notification_type }}",
+                            "rightValue": "half_way",
+                            "operator": {
+                                "type": "string",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "switch-type",
+            "name": "Switch — Tipo de Notificação",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3,
+            "position": [
+                480,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "subject": "={{ $('Webhook — Trial Notification').item.json.body.subject }}",
+                "emailTo": "={{ $('Webhook — Trial Notification').item.json.body.email }}",
+                "message": "={{ $('Webhook — Trial Notification').item.json.body.body }}\n\n🔗 Ativar agora: {{ $env.NEXT_PUBLIC_SITE_URL }}/trial-expirado",
+                "options": {
+                    "fromName": "Aviator Pro"
+                }
+            },
+            "id": "send-email",
+            "name": "Enviar Email",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                720,
+                200
+            ],
+            "credentials": {
+                "smtp": {
+                    "id": "smtp-credentials",
+                    "name": "SMTP"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={\"success\": true, \"notification_type\": \"{{ $('Webhook — Trial Notification').item.json.body.notification_type }}\"}",
+                "options": {}
+            },
+            "id": "respond-ok",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                960,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook — Trial Notification": {
+            "main": [
+                [
+                    {
+                        "node": "Switch — Tipo de Notificação",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Enviar Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Enviar Email": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

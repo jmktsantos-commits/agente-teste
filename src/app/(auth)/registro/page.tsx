@@ -23,11 +23,13 @@ function RegisterForm() {
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [btag, setBtag] = useState<string | null>(null)
+    const [trialRef, setTrialRef] = useState<string | null>(null)
+    const [isTrial, setIsTrial] = useState(false)
     const router = useRouter()
     const searchParams = useSearchParams()
     const supabase = createClient()
 
-    // Capture btag from URL and persist in localStorage
+    // Capture btag, trial ref from URL and persist in localStorage
     useEffect(() => {
         const urlBtag = searchParams.get("btag")
         if (urlBtag) {
@@ -36,6 +38,23 @@ function RegisterForm() {
         } else {
             const stored = localStorage.getItem("affiliate_btag")
             if (stored) setBtag(stored)
+        }
+
+        // Capturar parâmetros de trial
+        const ref = searchParams.get("ref")
+        const trial = searchParams.get("trial")
+        if (ref) {
+            localStorage.setItem("trial_ref", ref)
+            setTrialRef(ref)
+        } else {
+            const storedRef = localStorage.getItem("trial_ref")
+            if (storedRef) setTrialRef(storedRef)
+        }
+        if (trial === "true") {
+            localStorage.setItem("activate_trial", "true")
+            setIsTrial(true)
+        } else if (localStorage.getItem("activate_trial") === "true") {
+            setIsTrial(true)
         }
     }, [searchParams])
 
@@ -51,11 +70,15 @@ function RegisterForm() {
         }
 
         try {
-            const { error } = await supabase.auth.signUp({
+            const redirectTo = isTrial
+                ? `${window.location.origin}/ativar-trial?auto=true&ref=${trialRef || 'GENERIC'}`
+                : `${window.location.origin}/auth/callback`
+
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback`,
+                    emailRedirectTo: redirectTo,
                     data: {
                         full_name: `${firstName} ${lastName}`.trim(),
                         first_name: firstName,
@@ -67,8 +90,24 @@ function RegisterForm() {
                 },
             })
 
-            if (error) {
-                throw error
+            if (error) throw error
+
+            // Se confirmação de email está desabilitada no Supabase, o usuário já está logado
+            if (data.session) {
+                // Ativar trial imediatamente
+                if (isTrial) {
+                    await fetch("/api/trial/activate", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ partner_ref: trialRef || "GENERIC" })
+                    })
+                    localStorage.removeItem("activate_trial")
+                    localStorage.removeItem("trial_ref")
+                    router.push("/dashboard")
+                    return
+                }
+                router.push("/dashboard")
+                return
             }
 
             setSuccess(true)
@@ -82,7 +121,13 @@ function RegisterForm() {
     return (
         <div className="flex min-h-screen items-center justify-center p-4 bg-background">
             <Card className="w-full max-w-md">
-                {btag && (
+                {isTrial && (
+                    <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-600">
+                        <Gift className="w-4 h-4" />
+                        🎁 Você terá 24h de acesso gratuito após o cadastro!
+                    </div>
+                )}
+                {btag && !isTrial && (
                     <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-600">
                         <Gift className="w-4 h-4" />
                         Você foi indicado por um afiliado! 🎉
@@ -101,7 +146,10 @@ function RegisterForm() {
                                 Cadastro realizado com sucesso!
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                Verifique seu email para confirmar sua conta.
+                                {isTrial
+                                    ? "Verifique seu email e clique no link para ativar sua conta e o trial gratuito de 24h!"
+                                    : "Verifique seu email para confirmar sua conta."
+                                }
                             </p>
                             <Button asChild className="w-full">
                                 <Link href="/login">Ir para Login</Link>
@@ -188,7 +236,7 @@ function RegisterForm() {
                             {error && <div className="text-sm text-red-500">{error}</div>}
                             <Button type="submit" className="w-full" disabled={loading}>
                                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Criar conta
+                                {isTrial ? "🎁 Criar conta e ativar trial gratuito" : "Criar conta"}
                             </Button>
                         </form>
                     )}
