@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { ExternalLink, Shield, X, ChevronRight } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ExternalLink, Shield, ChevronRight, Gamepad2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { RecentHistoryTable } from "@/components/features/dashboard/recent-history"
@@ -14,7 +14,42 @@ const ESPORTIVABET_URL = "https://go.aff.esportiva.bet/8ywkf5b2?utm_campaign=sit
 
 export default function DashboardPage() {
     const [selectedPlatform, setSelectedPlatform] = useState<Platform>("bravobet")
-    const [iframeOpen, setIframeOpen] = useState(false)
+    const [popupOpen, setPopupOpen] = useState(false)
+    const [popupRef, setPopupRef] = useState<Window | null>(null)
+
+    // Detecta quando o popup for fechado pelo usuário
+    useEffect(() => {
+        if (!popupOpen || !popupRef) return
+        const interval = setInterval(() => {
+            if (popupRef.closed) {
+                setPopupOpen(false)
+                setPopupRef(null)
+            }
+        }, 500)
+        return () => clearInterval(interval)
+    }, [popupOpen, popupRef])
+
+    const handleJogar = () => {
+        const popup = window.open(
+            ESPORTIVABET_URL,
+            'esportivabet',
+            'width=1280,height=800,top=80,left=100,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
+        )
+        if (popup) {
+            setPopupRef(popup)
+            setPopupOpen(true)
+            popup.focus()
+        } else {
+            // Bloqueado por pop-up blocker → abre em nova aba como fallback
+            window.open(ESPORTIVABET_URL, '_blank', 'noopener,noreferrer')
+        }
+    }
+
+    const handleFocarJanela = () => {
+        if (popupRef && !popupRef.closed) {
+            popupRef.focus()
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -48,74 +83,43 @@ export default function DashboardPage() {
                 <RecentHistoryTable selectedPlatform={selectedPlatform} />
             </ErrorBoundary>
 
-            {/* 4. Banner / Iframe EsportivaBet */}
-            {iframeOpen ? (
-                /* Vista iframe — ocupa toda a largura */
-                <div className="flex flex-col rounded-xl overflow-hidden border border-emerald-500/25" style={{ height: '82vh' }}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b border-white/10 bg-background/95 backdrop-blur-xl px-4 py-3 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <span className="text-lg">🎯</span>
-                            <h2 className="font-semibold">EsportivaBet Casino</h2>
-                            <span className="text-xs text-muted-foreground">Bônus de boas-vindas exclusivo</span>
+            {/* 4. Banner EsportivaBet */}
+            {popupOpen ? (
+                /* Estado: jogando na EsportivaBet — janela popup aberta */
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full rounded-xl border border-emerald-500/30 bg-gradient-to-r from-[#071a0e] via-[#0a2214] to-[#071a0e] px-6 py-5">
+                    <div className="flex items-center gap-3 flex-1">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/20 border border-emerald-500/30 shrink-0">
+                            <Gamepad2 className="h-5 w-5 text-emerald-400" />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => window.open(ESPORTIVABET_URL, '_blank', 'noopener,noreferrer')}
-                                className="gap-2"
-                            >
-                                <ExternalLink className="h-4 w-4" />
-                                Abrir em Nova Aba
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => setIframeOpen(false)}>
-                                <X className="h-4 w-4" />
-                            </Button>
+                        <div>
+                            <p className="text-white font-bold text-sm">Você está jogando na EsportivaBet</p>
+                            <p className="text-emerald-400/70 text-xs">Janela aberta em segundo plano</p>
                         </div>
                     </div>
-
-                    {/* Iframe + fallback */}
-                    <div className="flex-1 relative bg-white dark:bg-slate-950">
-                        {/* Fallback (fica atrás do iframe) */}
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none z-10">
-                            <div className="pointer-events-auto space-y-3 text-center max-w-md p-6 rounded-xl bg-background/95 backdrop-blur-xl border border-white/10">
-                                <Shield className="h-12 w-12 mx-auto text-amber-500" />
-                                <p className="text-sm font-medium">Se a plataforma não carregar aqui, use o botão abaixo</p>
-                                <Button
-                                    onClick={() => window.open(ESPORTIVABET_URL, '_blank', 'noopener,noreferrer')}
-                                    className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                                >
-                                    <ExternalLink className="mr-2 h-4 w-4" />
-                                    Abrir EsportivaBet
-                                </Button>
-                                <p className="text-xs text-muted-foreground">
-                                    Algumas plataformas bloqueiam incorporação por segurança.
-                                </p>
-                            </div>
-                        </div>
-                        <iframe
-                            src={ESPORTIVABET_URL}
-                            className="w-full h-full relative z-20 bg-white"
-                            title="EsportivaBet Casino"
-                            allow="fullscreen; payment; geolocation; microphone; camera"
-                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
-                        />
-                    </div>
-
-                    {/* Aviso */}
-                    <div className="flex items-center justify-center gap-2 border-t border-amber-500/20 bg-amber-500/10 px-4 py-2 text-xs shrink-0">
-                        <Shield className="h-3 w-3 text-amber-500" />
-                        <span className="text-amber-600 dark:text-amber-400">
-                            Jogue com responsabilidade. Nunca aposte mais do que pode perder.
-                        </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                            onClick={handleFocarJanela}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm gap-2"
+                            size="sm"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Focar na janela
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-400 hover:text-white text-xs"
+                            onClick={() => { popupRef?.close(); setPopupOpen(false); setPopupRef(null) }}
+                        >
+                            Fechar
+                        </Button>
                     </div>
                 </div>
             ) : (
                 /* Banner retangular clicável */
                 <>
                     <button
-                        onClick={() => setIframeOpen(true)}
+                        onClick={handleJogar}
                         className="group flex flex-col sm:flex-row items-center gap-4 sm:gap-6 w-full rounded-xl border border-emerald-500/25 bg-gradient-to-r from-[#071a0e] via-[#0a2214] to-[#071a0e] hover:border-emerald-400/50 hover:from-[#0a2214] hover:to-[#0a2214] transition-all duration-300 px-6 py-5 cursor-pointer shadow-lg shadow-emerald-900/20 text-left"
                     >
                         <div className="flex items-center gap-4 shrink-0">
