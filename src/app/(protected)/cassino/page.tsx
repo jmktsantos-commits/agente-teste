@@ -1,20 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Gamepad2, TrendingUp, Shield, Sparkles, X, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CasinoCard } from '@/components/features/casino/CasinoCard'
 import { getAllCasinoConfigs, type CasinoConfig } from '@/lib/casino-config'
 import { trackCasinoClick, setPreferredPlatform } from '@/lib/analytics/track-casino'
 
+// EsportivaBet bloqueia iframe com X-Frame-Options + script anti-iframe.
+// Para ela, usamos popup window independente.
+const ESPORTIVABET_ID = 'esportivabet'
+
 export default function CassinoPage() {
     const casinos = getAllCasinoConfigs()
     const [activeCasino, setActiveCasino] = useState<CasinoConfig | null>(null)
+    const [popupCasino, setPopupCasino] = useState<CasinoConfig | null>(null)
     const [playersOnline, setPlayersOnline] = useState({ bravobet: 0, superbet: 0, esportivabet: 0 })
+    const popupRef = useRef<Window | null>(null)
 
     const randomPlayers = () => Math.floor(Math.random() * (498 - 103 + 1)) + 103
 
-    // Update player counts on mount and every 5-10 seconds to simulate live activity
     useEffect(() => {
         const update = () => {
             setPlayersOnline({
@@ -23,29 +28,49 @@ export default function CassinoPage() {
                 esportivabet: randomPlayers()
             })
         }
-
-        update() // initial
-        const interval = setInterval(update, Math.floor(Math.random() * 5000) + 5000) // 5–10s
+        update()
+        const interval = setInterval(update, Math.floor(Math.random() * 5000) + 5000)
         return () => clearInterval(interval)
     }, [])
 
-    const handlePlayClick = (casino: CasinoConfig) => {
-        // Track analytics
-        trackCasinoClick({
-            platform: casino.id,
-            source: 'casino_page'
-        })
+    // Detecta quando o popup for fechado pelo usuário
+    useEffect(() => {
+        if (!popupCasino) return
+        const interval = setInterval(() => {
+            if (popupRef.current?.closed) {
+                setPopupCasino(null)
+                popupRef.current = null
+            }
+        }, 500)
+        return () => clearInterval(interval)
+    }, [popupCasino])
 
-        // Save preference
+    const handlePlayClick = (casino: CasinoConfig) => {
+        trackCasinoClick({ platform: casino.id, source: 'casino_page' })
         setPreferredPlatform(casino.id)
 
-        // Show iframe inline (sidebar remains visible)
-        setActiveCasino(casino)
+        if (casino.id === ESPORTIVABET_ID) {
+            // EsportivaBet: abre em popup window (tem anti-iframe)
+            const popup = window.open(
+                casino.affiliateUrl,
+                'esportivabet',
+                'width=1280,height=800,top=80,left=100,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
+            )
+            if (popup) {
+                popupRef.current = popup
+                setPopupCasino(casino)
+                popup.focus()
+            } else {
+                // Popup blocker → nova aba como fallback
+                window.open(casino.affiliateUrl, '_blank', 'noopener,noreferrer')
+            }
+        } else {
+            // BravoBet / Superbet: iframe inline
+            setActiveCasino(casino)
+        }
     }
 
-    const handleClose = () => {
-        setActiveCasino(null)
-    }
+    const handleClose = () => setActiveCasino(null)
 
     const handleOpenExternal = () => {
         if (activeCasino) {
@@ -53,9 +78,19 @@ export default function CassinoPage() {
         }
     }
 
+    const handleFocarPopup = () => {
+        if (popupRef.current && !popupRef.current.closed) {
+            popupRef.current.focus()
+        }
+    }
 
+    const handleFecharPopup = () => {
+        popupRef.current?.close()
+        setPopupCasino(null)
+        popupRef.current = null
+    }
 
-    // If casino is active, show iframe view inline (sidebar remains visible)
+    // Vista iframe inline (BravoBet / Superbet)
     if (activeCasino) {
         return (
             <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -67,30 +102,15 @@ export default function CassinoPage() {
                             style={{ background: activeCasino.color.gradient }}
                         />
                         <h2 className="font-semibold">{activeCasino.displayName}</h2>
-                        <span className="text-xs text-muted-foreground">
-                            {activeCasino.bonus}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{activeCasino.bonus}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
-
-                        {/* Open External */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleOpenExternal}
-                            className="gap-2"
-                        >
+                        <Button variant="outline" size="sm" onClick={handleOpenExternal} className="gap-2">
                             <ExternalLink className="h-4 w-4" />
                             Abrir em Nova Aba
                         </Button>
-
-                        {/* Close Button */}
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClose}
-                        >
+                        <Button variant="ghost" size="sm" onClick={handleClose}>
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
@@ -98,17 +118,12 @@ export default function CassinoPage() {
 
                 {/* Iframe Container */}
                 <div className="flex-1 relative bg-white dark:bg-slate-950">
-                    {/* Fallback Message (shows if iframe fails) */}
+                    {/* Fallback */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none z-10">
                         <div className="pointer-events-auto space-y-3 text-center max-w-md p-6 rounded-xl bg-background/95 backdrop-blur-xl border border-white/10">
                             <Shield className="h-12 w-12 mx-auto text-amber-500" />
-                            <p className="text-sm font-medium">
-                                Se a plataforma não carregar, use o botão abaixo
-                            </p>
-                            <Button
-                                onClick={handleOpenExternal}
-                                style={{ background: activeCasino.color.gradient }}
-                            >
+                            <p className="text-sm font-medium">Se a plataforma não carregar, use o botão abaixo</p>
+                            <Button onClick={handleOpenExternal} style={{ background: activeCasino.color.gradient }}>
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 Abrir {activeCasino.displayName}
                             </Button>
@@ -118,13 +133,13 @@ export default function CassinoPage() {
                         </div>
                     </div>
 
-                    {/* Main Iframe */}
+                    {/* Iframe — sem allow-top-navigation para segurança */}
                     <iframe
                         src={activeCasino.affiliateUrl}
                         className="w-full h-full relative z-20 bg-white"
                         title={activeCasino.displayName}
                         allow="fullscreen; payment; geolocation; microphone; camera"
-                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation"
+                        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
                     />
                 </div>
 
@@ -135,7 +150,7 @@ export default function CassinoPage() {
                         Jogue com responsabilidade. Nunca aposte mais do que pode perder.
                     </span>
                 </div>
-            </div >
+            </div>
         )
     }
 
@@ -186,6 +201,43 @@ export default function CassinoPage() {
                 </div>
             </div>
 
+            {/* Popup EsportivaBet ativo — banner de status */}
+            {popupCasino && (
+                <div className="container mx-auto px-4 pt-6 sm:px-6 lg:px-8">
+                    <div className="mx-auto max-w-6xl">
+                        <div className="flex flex-col sm:flex-row items-center gap-4 w-full rounded-xl border border-emerald-500/30 bg-gradient-to-r from-[#071a0e] via-[#0a2214] to-[#071a0e] px-6 py-4">
+                            <div className="flex items-center gap-3 flex-1">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 shrink-0">
+                                    <Gamepad2 className="h-4 w-4 text-emerald-400" />
+                                </div>
+                                <div>
+                                    <p className="text-white font-bold text-sm">Você está jogando na EsportivaBet</p>
+                                    <p className="text-emerald-400/70 text-xs">Janela aberta em segundo plano</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <Button
+                                    onClick={handleFocarPopup}
+                                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-sm gap-2"
+                                    size="sm"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    Focar na janela
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-white text-xs"
+                                    onClick={handleFecharPopup}
+                                >
+                                    Fechar
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Casino Cards Grid */}
             <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-6xl">
@@ -206,29 +258,21 @@ export default function CassinoPage() {
 
                         <div className="grid gap-6 md:grid-cols-3">
                             <div className="space-y-2">
-                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-500/10 text-purple-500 font-bold text-xl">
-                                    1
-                                </div>
+                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-purple-500/10 text-purple-500 font-bold text-xl">1</div>
                                 <h3 className="font-semibold">Escolha a Plataforma</h3>
                                 <p className="text-sm text-muted-foreground">
                                     Selecione Bravobet, Superbet ou EsportivaBet baseado nos bônus e características
                                 </p>
                             </div>
-
                             <div className="space-y-2">
-                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-pink-500/10 text-pink-500 font-bold text-xl">
-                                    2
-                                </div>
+                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-pink-500/10 text-pink-500 font-bold text-xl">2</div>
                                 <h3 className="font-semibold">Jogue Direto no Site</h3>
                                 <p className="text-sm text-muted-foreground">
                                     A plataforma abre aqui mesmo, sem sair do nosso site
                                 </p>
                             </div>
-
                             <div className="space-y-2">
-                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-orange-500/10 text-orange-500 font-bold text-xl">
-                                    3
-                                </div>
+                                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-orange-500/10 text-orange-500 font-bold text-xl">3</div>
                                 <h3 className="font-semibold">Use Nossos Sinais</h3>
                                 <p className="text-sm text-muted-foreground">
                                     Volte ao Dashboard a qualquer momento para ver novos sinais
