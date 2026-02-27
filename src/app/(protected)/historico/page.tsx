@@ -1,11 +1,8 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { BarChart2, Gamepad2, TrendingUp, Radio, BookOpen } from "lucide-react"
-
-// 🔴 COLOQUE AQUI O ID DO VÍDEO DO YOUTUBE (parte após "watch?v=" ou o código final do link)
-// Exemplo: https://youtu.be/dQw4w9WgXcQ → ID = dQw4w9WgXcQ
-const YOUTUBE_VIDEO_ID = "SUBSTITUA_PELO_ID_DO_VIDEO"
+import { BarChart2, Gamepad2, TrendingUp, Radio, BookOpen, Loader2 } from "lucide-react"
 
 const quickLinks = [
     {
@@ -42,19 +39,47 @@ const quickLinks = [
     },
 ]
 
+interface VideoSetting {
+    value: string
+    parsed: { type: 'youtube' | 'vimeo' | 'unknown'; id: string } | null
+}
+
 export default function BoasVindasPage() {
+    const [videoSetting, setVideoSetting] = useState<VideoSetting | null>(null)
+    const [videoLoading, setVideoLoading] = useState(true)
+
+    useEffect(() => {
+        fetch("/api/admin/site-settings?key=welcome_video_url")
+            .then(r => r.json())
+            .then(data => setVideoSetting(data))
+            .catch(() => setVideoSetting(null))
+            .finally(() => setVideoLoading(false))
+    }, [])
+
+    const getEmbedUrl = (): string | null => {
+        if (!videoSetting?.parsed) return null
+        if (videoSetting.parsed.type === "youtube") {
+            return `https://www.youtube.com/embed/${videoSetting.parsed.id}?rel=0&modestbranding=1`
+        }
+        if (videoSetting.parsed.type === "vimeo") {
+            return `https://player.vimeo.com/video/${videoSetting.parsed.id}`
+        }
+        return null
+    }
+
+    const embedUrl = getEmbedUrl()
+    const hasVideo = !!embedUrl
+
     return (
         <div className="min-h-screen bg-background">
             {/* Hero */}
             <div className="relative overflow-hidden border-b border-white/5 bg-gradient-to-br from-background via-background to-purple-500/5 px-4 pt-12 pb-8 text-center">
-                {/* Glows */}
                 <div className="pointer-events-none absolute inset-0 overflow-hidden">
                     <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-purple-500/10 blur-3xl" />
                     <div className="absolute top-0 -right-24 h-64 w-64 rounded-full bg-pink-500/10 blur-3xl" />
                 </div>
 
                 <div className="relative mx-auto max-w-3xl space-y-4">
-                    {/* Badge */}
                     <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-4 py-1.5 text-xs font-semibold text-purple-300 uppercase tracking-widest">
                         <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-pulse" />
                         Plataforma Oficial
@@ -77,33 +102,37 @@ export default function BoasVindasPage() {
             <div className="mx-auto max-w-4xl px-4 py-10">
                 <div
                     className="relative w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-purple-500/10"
-                    style={{ paddingBottom: "56.25%" /* 16:9 */ }}
+                    style={{ paddingBottom: "56.25%" }}
                 >
-                    {YOUTUBE_VIDEO_ID === "SUBSTITUA_PELO_ID_DO_VIDEO" ? (
-                        // Placeholder enquanto vídeo não foi configurado
+                    {videoLoading ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+                            <Loader2 className="h-8 w-8 text-white/20 animate-spin" />
+                        </div>
+                    ) : hasVideo ? (
+                        <iframe
+                            className="absolute inset-0 w-full h-full"
+                            src={embedUrl!}
+                            title="Vídeo de Boas-Vindas — Aviator Pro"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                        />
+                    ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 gap-4">
                             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-white/5 border border-white/10">
                                 <svg className="h-10 w-10 text-white/30" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z" />
                                 </svg>
                             </div>
-                            <p className="text-white/30 text-sm">Vídeo de boas-vindas</p>
+                            <p className="text-white/30 text-sm">Vídeo em breve</p>
                         </div>
-                    ) : (
-                        <iframe
-                            className="absolute inset-0 w-full h-full"
-                            src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=0&rel=0&modestbranding=1`}
-                            title="Vídeo de Boas-Vindas — Aviator Pro"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                        />
                     )}
                 </div>
 
-                {/* Caption */}
-                <p className="mt-4 text-center text-sm text-muted-foreground">
-                    Assista ao vídeo completo para entender como usar os sinais a seu favor.
-                </p>
+                {hasVideo && (
+                    <p className="mt-4 text-center text-sm text-muted-foreground">
+                        Assista ao vídeo completo para entender como usar os sinais a seu favor.
+                    </p>
+                )}
             </div>
 
             {/* Quick Links */}
