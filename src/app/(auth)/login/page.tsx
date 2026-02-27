@@ -46,7 +46,7 @@ export default function LoginPage() {
 
                 if (profile?.role === "affiliate") router.push("/affiliate")
                 else if (profile?.role === "admin") router.push("/admin")
-                else router.push("/dashboard")
+                else router.push("/historico")
             } else {
                 router.push("/dashboard")
             }
