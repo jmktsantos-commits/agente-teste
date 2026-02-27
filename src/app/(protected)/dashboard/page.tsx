@@ -99,7 +99,7 @@ export default function DashboardPage() {
                             className="w-full h-full relative z-20 bg-white"
                             title="EsportivaBet Casino"
                             allow="fullscreen; payment; geolocation; microphone; camera"
-                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation"
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
                         />
                     </div>
 
