@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Paths que nunca redirecionam para login (acesso público)
-const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial', '/trial-expirado']
+const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial']
 const PUBLIC_EXACT_PATHS = ['/'] // Landing page — acesso público sem login
 
 export async function updateSession(request: NextRequest) {
@@ -47,8 +47,8 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // Verificar se trial expirou (evitar loop: ignorar se já está em /trial-expirado)
-    if (user && !isAuthFreePath && !request.nextUrl.pathname.startsWith('/trial-expirado')) {
+    // Verificar se trial expirou
+    if (user && !isAuthFreePath) {
         const { data: profile } = await supabase
             .from('profiles')
             .select('plan, trial_expires_at')
@@ -59,15 +59,11 @@ export async function updateSession(request: NextRequest) {
         const trialExpired = profile?.trial_expires_at && new Date(profile.trial_expires_at) < now
 
         const shouldBlock =
-            // Caso 1: still marked as 'trial' but expired
             (profile?.plan === 'trial' && trialExpired) ||
-            // Caso 2: plan voltou para 'free' mas já teve trial expirado (não assinou)
             (profile?.plan === 'free' && trialExpired)
 
         if (shouldBlock) {
-            const url = request.nextUrl.clone()
-            url.pathname = '/trial-expirado'
-            return NextResponse.redirect(url)
+            return NextResponse.redirect('https://agente-teste-three.vercel.app/')
         }
     }
 

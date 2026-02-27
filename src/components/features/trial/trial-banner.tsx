@@ -27,7 +27,7 @@ export function TrialBanner() {
                 setTrialStatus(data)
                 // Se trial já expirou no servidor → redirecionar imediatamente
                 if (data.plan === "trial" && data.trial_expired) {
-                    router.push("/trial-expirado")
+                    window.location.href = "https://agente-teste-three.vercel.app/"
                 }
             }
         } catch {
@@ -53,8 +53,7 @@ export function TrialBanner() {
 
             if (diff <= 0) {
                 setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
-                // Redirecionar imediatamente sem reload
-                router.push("/trial-expirado")
+                window.location.href = "https://agente-teste-three.vercel.app/"
                 return
             }
 
@@ -111,7 +110,9 @@ export function TrialBanner() {
 
             {/* CTA */}
             <Link
-                href="/trial-expirado"
+                href="https://agente-teste-three.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
                 className={`flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${isUrgent
                     ? "bg-orange-500 hover:bg-orange-400 text-black"
                     : "bg-emerald-500 hover:bg-emerald-400 text-black"
