@@ -7,7 +7,7 @@ const WHATSAPP_NUMBER = "5515981092500"
 
 function makeWhatsAppLink(plan: string, price: string) {
     const msg = encodeURIComponent(
-        `Olá! Acabei de usar o trial de 24h e quero assinar o plano ${plan} (${price}/mês) da plataforma de previsões do Aviator. Pode me ajudar?`
+        `Olá! Acabei de usar o trial de 72h e quero assinar o plano ${plan} (${price}/mês) da plataforma de previsões do Aviator. Pode me ajudar?`
     )
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`
 }
@@ -66,7 +66,7 @@ export default function TrialExpiradoPage() {
                 {/* Header */}
                 <div className="text-center space-y-4">
                     <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 text-sm px-4 py-2 rounded-full">
-                        <span className="animate-pulse">●</span> Seu acesso gratuito de 24h expirou
+                        <span className="animate-pulse">●</span> Seu acesso gratuito de 72h expirou
                     </div>
                     <h1 className="text-3xl md:text-4xl font-bold leading-tight">
                         Você viu o potencial. <br />

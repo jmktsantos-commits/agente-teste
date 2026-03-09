@@ -86,14 +86,14 @@ function ActivateTrialContent() {
                     {/* Header */}
                     <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 p-6 text-center">
                         <div className="text-4xl mb-2">🎁</div>
-                        <h1 className="text-2xl font-bold text-white">Acesso Gratuito por 24h</h1>
+                        <h1 className="text-2xl font-bold text-white">Acesso Gratuito por 72h</h1>
                         <p className="text-emerald-100 text-sm mt-1">Sem cartão de crédito. Sem compromisso.</p>
                     </div>
 
                     <div className="p-6 space-y-6">
                         {/* Contador visual */}
                         <div className="flex items-center justify-center gap-4">
-                            {["24", ":", "00", ":", "00"].map((seg, i) => (
+                            {["72", ":", "00", ":", "00"].map((seg, i) => (
                                 <div key={i} className={seg === ":" ? "text-gray-400 text-2xl font-bold" : "bg-[#1a1a25] border border-white/10 rounded-xl p-3 text-center min-w-[60px]"}>
                                     {seg === ":" ? ":" : (
                                         <>
@@ -162,7 +162,7 @@ function ActivateTrialContent() {
                                         disabled={loading}
                                         className="w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all transform hover:scale-[1.02] shadow-lg shadow-emerald-500/25"
                                     >
-                                        {loading ? "Ativando..." : "🎁 Ativar meu trial de 24h gratuito"}
+                                        {loading ? "Ativando..." : "🎁 Ativar meu trial de 72h gratuito"}
                                     </button>
                                 </div>
                             )

@@ -256,7 +256,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                 <>
                                     <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Horários Confirmados</span>
                                     <div className="flex flex-wrap justify-center gap-2">
-                                        {[...suggestedTimes].sort().map((time, idx) => (
+                                        {suggestedTimes.map((time, idx) => (
                                             <div key={idx} className="bg-white text-black px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg shadow-white/10 animate-in fade-in zoom-in duration-300">
                                                 <Clock className="w-3.5 h-3.5 text-black" />
                                                 <span className="font-bold font-mono text-sm">{time}</span>
@@ -270,7 +270,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                         <>
                                             <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Última Análise</span>
                                             <div className="flex flex-wrap justify-center gap-2">
-                                                {lastPredictions[0].suggested_range.split(',').sort().map((timeRange, idx) => {
+                                                {lastPredictions[0].suggested_range.split(',').map(s => s.trim()).sort().map((timeRange, idx) => {
                                                     const fixedTime = parseTimeFormat(timeRange.trim());
                                                     return (
                                                         <div key={idx} className="bg-white text-black px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg shadow-white/10">
@@ -299,7 +299,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                         <>
                                             <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Última Análise</span>
                                             <div className="flex flex-wrap justify-center gap-2">
-                                                {lastPredictions[0].suggested_range.split(',').sort().map((timeRange, idx) => {
+                                                {lastPredictions[0].suggested_range.split(',').map(s => s.trim()).sort().map((timeRange, idx) => {
                                                     const fixedTime = parseTimeFormat(timeRange.trim());
                                                     return (
                                                         <div key={idx} className="bg-white text-black px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-lg shadow-white/10">
@@ -385,7 +385,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                         </span>
                                     </div>
                                     <div className="flex flex-col gap-1 mt-1">
-                                        {pred.suggested_range.split(',').sort().map((timeRange, idx) => {
+                                        {pred.suggested_range.split(',').map(s => s.trim()).sort().map((timeRange, idx) => {
                                             const fixedTime = parseTimeFormat(timeRange.trim());
                                             if (!fixedTime) return null; // Don't render empty badges
                                             return (

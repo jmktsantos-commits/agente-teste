@@ -128,7 +128,7 @@ export default function TrialsAdminPage() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Gestão de Trials</h1>
-                <p className="text-muted-foreground mt-1 text-sm">Acompanhe e gerencie os acessos gratuitos de 24h.</p>
+                <p className="text-muted-foreground mt-1 text-sm">Acompanhe e gerencie os acessos gratuitos de 72h.</p>
             </div>
 
             {/* Stat Cards */}
@@ -152,7 +152,7 @@ export default function TrialsAdminPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="text-base">🎁 Ativar Trial Manualmente</CardTitle>
-                    <CardDescription>Dê acesso gratuito de 24h a um usuário pelo email.</CardDescription>
+                    <CardDescription>Dê acesso gratuito de 72h a um usuário pelo email.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -192,8 +192,8 @@ export default function TrialsAdminPage() {
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${filter === f
-                                            ? "bg-primary text-primary-foreground border-primary"
-                                            : "border-border text-muted-foreground hover:text-foreground"
+                                        ? "bg-primary text-primary-foreground border-primary"
+                                        : "border-border text-muted-foreground hover:text-foreground"
                                         }`}
                                 >
                                     {f === "all" ? "Todos" : f === "active" ? "Ativos" : "Expirados"}
