@@ -69,7 +69,13 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
         if (!isoString) return '--:--'
         const date = new Date(isoString)
         if (isNaN(date.getTime())) return '--:--'
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        return date.toLocaleTimeString('pt-BR', {
+            timeZone: 'America/Sao_Paulo',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        })
     }
 
     const getMultiplierColor = (multiplier: number) => {
