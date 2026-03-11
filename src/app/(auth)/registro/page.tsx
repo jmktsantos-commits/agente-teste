@@ -136,7 +136,7 @@ function RegisterForm() {
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold">Criar conta</CardTitle>
                     <CardDescription>
-                        Comece a usar o Aviator Pro hoje mesmo
+                        Comece a usar o Nexa Plataforma hoje mesmo
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

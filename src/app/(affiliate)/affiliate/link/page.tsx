@@ -36,11 +36,11 @@ export default function AffiliateLinkPage() {
 
     const shareLink = () => {
         if (navigator.share) {
-            navigator.share({ title: "Aviator Pro", url: referralLink })
+            navigator.share({ title: "Nexa Plataforma", url: referralLink })
         }
     }
 
-    const whatsappMsg = `Olá! Venha usar o Aviator Pro, a melhor plataforma de análise: ${referralLink}`
+    const whatsappMsg = `Olá! Venha usar o Nexa Plataforma, a melhor plataforma de análise: ${referralLink}`
 
     if (loading) {
         return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>

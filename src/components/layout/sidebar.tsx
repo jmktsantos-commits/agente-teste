@@ -81,7 +81,7 @@ export function Sidebar({ className }: SidebarProps) {
                     </div>
                     <div>
                         <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
-                            Aviator Pro
+                            Nexa Plataforma
                         </h1>
                         <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
                             Plataforma de Sinais

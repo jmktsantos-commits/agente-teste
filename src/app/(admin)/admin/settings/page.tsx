@@ -16,7 +16,7 @@ export default function SettingsPage() {
     const [videoError, setVideoError] = useState<string | null>(null)
 
     // General settings
-    const [platformName, setPlatformName] = useState("Aviator Pro")
+    const [platformName, setPlatformName] = useState("Nexa Plataforma")
     const [maintenanceMode, setMaintenanceMode] = useState(false)
     const [registrationOpen, setRegistrationOpen] = useState(true)
 

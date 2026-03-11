@@ -35,7 +35,7 @@ export function AffiliateSidebar({ className }: { className?: string }) {
                     </div>
                     <div>
                         <h2 className="text-sm font-bold tracking-tight">Painel Afiliado</h2>
-                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Aviator Pro</p>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Nexa Plataforma</p>
                     </div>
                 </div>
             </div>

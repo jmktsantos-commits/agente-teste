@@ -89,7 +89,7 @@ export default function BoasVindasPage() {
                         <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
                             Bem-vindo à
                         </span>{" "}
-                        <span className="text-white">Aviator Pro</span>
+                        <span className="text-white">Nexa Plataforma</span>
                     </h1>
 
                     <p className="text-lg text-muted-foreground max-w-xl mx-auto">
@@ -112,7 +112,7 @@ export default function BoasVindasPage() {
                         <iframe
                             className="absolute inset-0 w-full h-full"
                             src={embedUrl!}
-                            title="Vídeo de Boas-Vindas — Aviator Pro"
+                            title="Vídeo de Boas-Vindas — Nexa Plataforma"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                         />
