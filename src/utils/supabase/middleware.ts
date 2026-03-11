@@ -2,11 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Paths que nunca redirecionam para login (acesso público)
-const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial']
+const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial', '/trial-expirado']
 const PUBLIC_EXACT_PATHS = ['/'] // Landing page — acesso público sem login
 
 // Planos que NÃO devem ser bloqueados mesmo com trial expirado
-const PAID_PLANS = ['starter', 'anual', 'black', 'paid', 'premium', 'active', 'vip']
+const PAID_PLANS = ['starter', 'anual', 'black', 'paid', 'premium', 'active', 'vip', 'pro', 'monthly', 'annual']
 
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
@@ -72,7 +72,9 @@ export async function updateSession(request: NextRequest) {
             const shouldBlock = profile?.plan === 'trial' && trialExpired
 
             if (shouldBlock) {
-                return NextResponse.redirect('https://agente-teste-three.vercel.app/')
+                const url = request.nextUrl.clone()
+                url.pathname = '/trial-expirado'
+                return NextResponse.redirect(url)
             }
         }
     }
