@@ -62,7 +62,7 @@ function Testimonial({ name, avatar, text, stars }: { name: string; avatar: stri
         </div>
         <div>
           <p className="font-semibold text-white text-sm">{name}</p>
-          <p className="text-xs text-slate-500">Membro AviatorPro</p>
+          <p className="text-xs text-slate-500">Membro Nexa Plataforma</p>
         </div>
       </div>
     </div>
@@ -103,7 +103,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
               <Zap className="w-5 h-5 text-white" fill="currentColor" />
             </div>
-            AVIATOR<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500">PRO</span>
+            Nexa<span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500"> Plataforma</span>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -283,7 +283,7 @@ export default function LandingPage() {
             <Testimonial name="Ana P." avatar="AP" stars={5} text="Recebi o acesso em menos de 5 minutos após o pagamento. A plataforma é incrível, vale muito o investimento!" />
             <Testimonial name="Carlos T." avatar="CT" stars={5} text="A comunidade VIP é o diferencial. Aprender com outros membros e ver os resultados deles me motivou muito." />
             <Testimonial name="Juliana R." avatar="JR" stars={5} text="Nunca pensei que um sistema assim existia. Os sinais chegam na hora certa e o suporte é excelente." />
-            <Testimonial name="Marcos F." avatar="MF" stars={5} text="Já testei vários grupos e serviços. O AviatorPro é de longe o mais profissional e mais lucrativo que usei." />
+            <Testimonial name="Marcos F." avatar="MF" stars={5} text="Já testei vários grupos e serviços. A Nexa Plataforma é de longe a mais profissional e mais lucrativa que usei." />
           </div>
         </div>
       </section>
@@ -499,9 +499,9 @@ export default function LandingPage() {
             <div className="w-6 h-6 rounded bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
               <Zap className="w-4 h-4 text-white" fill="currentColor" />
             </div>
-            AVIATOR<span className="text-purple-400">PRO</span>
+            Nexa<span className="text-purple-400"> Plataforma</span>
           </div>
-          <p>© {new Date().getFullYear()} AviatorPro. Todos os direitos reservados.</p>
+          <p>© {new Date().getFullYear()} Nexa Plataforma. Todos os direitos reservados.</p>
           <p>Jogue com responsabilidade. Não garantimos lucros. Proibido para menores de 18 anos.</p>
           <div className="flex items-center justify-center gap-4 pt-2">
             <Link href="/login" className="hover:text-slate-400 transition-colors">Área do Membro</Link>
