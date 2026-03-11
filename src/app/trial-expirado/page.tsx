@@ -2,15 +2,10 @@
 
 import { useEffect, useState } from "react"
 
-const ESPORTIVABET_URL = process.env.NEXT_PUBLIC_ESPORTIVABET_AFFILIATE_URL || "https://go.aff.esportiva.bet/8ywkf5b2?utm_campaign=site"
+const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/9g65d6vkig15fsu7"
+const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/jtot6ozwz20sgnrm"
+const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK || "https://sandbox.asaas.com/c/wdj5s6op557z9txk"
 const WHATSAPP_NUMBER = "5515981092500"
-
-function makeWhatsAppLink(plan: string, price: string) {
-    const msg = encodeURIComponent(
-        `Olá! Acabei de usar o trial de 72h e quero assinar o plano ${plan} (${price}/mês) da plataforma de previsões do Aviator. Pode me ajudar?`
-    )
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`
-}
 
 export default function TrialExpiradoPage() {
     const [countdown, setCountdown] = useState({ hours: 23, minutes: 59, seconds: 59 })
@@ -31,25 +26,30 @@ export default function TrialExpiradoPage() {
     const plans = [
         {
             name: "Starter",
-            price: "R$ 47",
+            price: "R$47",
             period: "/mês",
             highlight: false,
-            features: ["Previsões diárias", "Histórico 30 dias", "Chat da comunidade"],
+            checkoutUrl: CHECKOUT_STARTER,
+            features: ["Acesso à Plataforma", "Histórico e Análise de Velas Altas", "Gestão de Banca Inteligente", "Curso Avançado Aviator", "Suporte via Chat"],
         },
         {
-            name: "Pro",
-            price: "R$ 97",
-            period: "/mês",
+            name: "Anual",
+            price: "R$397",
+            period: "/ano",
             highlight: true,
-            badge: "🔥 MAIS POPULAR",
-            features: ["Tudo do Starter", "Previsões em tempo real", "Lives exclusivas", "IA avançada", "Suporte prioritário"],
+            badge: "✔ MAIS ESCOLHIDO",
+            sub: "Equivale a apenas R$33,08 por mês",
+            checkoutUrl: CHECKOUT_ANUAL,
+            features: ["Tudo do Starter", "Grupo VIP no WhatsApp", "Suporte Direto com Especialista"],
         },
         {
-            name: "VIP",
-            price: "R$ 197",
-            period: "/mês",
+            name: "Black Elite",
+            price: "R$997",
+            period: "/ano",
             highlight: false,
-            features: ["Tudo do Pro", "Grupo VIP privado", "Sinais antecipados", "1:1 com experts"],
+            badge: "◆ ELITE",
+            checkoutUrl: CHECKOUT_BLACK,
+            features: ["Tudo do Anual", "Mentoria Particular (6 Encontros/Ano)"],
         },
     ]
 
@@ -79,55 +79,6 @@ export default function TrialExpiradoPage() {
                     </p>
                 </div>
 
-                {/* === CTA PRINCIPAL: EsportivaBet === */}
-                <div className="bg-gradient-to-br from-[#0f2d1a] to-[#0a1a10] border border-emerald-500/30 rounded-2xl p-6 md:p-8">
-                    <div className="flex flex-col md:flex-row items-center gap-6">
-                        <div className="flex-1 space-y-3">
-                            <div className="flex items-center gap-2">
-                                <span className="text-2xl">🎰</span>
-                                <span className="text-emerald-400 font-bold text-lg uppercase tracking-wide">EsportivaBet</span>
-                            </div>
-                            <h2 className="text-xl font-bold text-white">
-                                Sua conta já está pronta!
-                            </h2>
-                            <p className="text-gray-300 text-sm leading-relaxed">
-                                Você se cadastrou na EsportivaBet para ter acesso ao trial. Agora é o momento certo —
-                                as previsões da plataforma indicam os melhores momentos para apostar. <strong className="text-emerald-400">Use isso a seu favor.</strong>
-                            </p>
-                            <ul className="space-y-1.5">
-                                {[
-                                    "Bônus de boas-vindas para novos depósitos",
-                                    "Aviator disponível 24h na plataforma",
-                                    "Saque rápido via PIX",
-                                ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-2 text-sm text-gray-300">
-                                        <span className="text-emerald-500 shrink-0">✓</span> {item}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 shrink-0">
-                            <a
-                                href={ESPORTIVABET_URL}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="block bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-bold px-8 py-4 rounded-xl text-center transition-all transform hover:scale-[1.03] shadow-lg shadow-emerald-500/30 whitespace-nowrap text-base"
-                            >
-                                🚀 Acessar EsportivaBet
-                            </a>
-                            <p className="text-xs text-gray-500 text-center">
-                                Você já tem conta — só entrar e depositar
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Separador */}
-                <div className="flex items-center gap-4">
-                    <div className="flex-1 h-px bg-white/10" />
-                    <span className="text-gray-500 text-sm shrink-0">ou continue usando a plataforma</span>
-                    <div className="flex-1 h-px bg-white/10" />
-                </div>
 
                 {/* Oferta especial com countdown */}
                 <div className="bg-white/3 border border-white/10 rounded-2xl p-5 text-center">
@@ -174,7 +125,8 @@ export default function TrialExpiradoPage() {
                                     }`}
                             >
                                 {plan.badge && (
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-black text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">
+                                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${plan.highlight ? "bg-emerald-500 text-black" : "bg-amber-500 text-black"
+                                        }`}>
                                         {plan.badge}
                                     </div>
                                 )}
@@ -184,11 +136,8 @@ export default function TrialExpiradoPage() {
                                         <span className="text-3xl font-bold text-white">{plan.price}</span>
                                         <span className="text-gray-400 text-sm">{plan.period}</span>
                                     </div>
-                                    {plan.highlight && (
-                                        <p className="text-xs text-emerald-400 mt-1">
-                                            <span className="line-through opacity-50">R$ 121/mês</span>{" "}
-                                            <span className="font-semibold">com desconto trial</span>
-                                        </p>
+                                    {'sub' in plan && (
+                                        <p className="text-xs text-emerald-400 mt-1">{(plan as { sub: string }).sub}</p>
                                     )}
                                 </div>
                                 <ul className="space-y-2 mb-6">
@@ -199,21 +148,23 @@ export default function TrialExpiradoPage() {
                                     ))}
                                 </ul>
                                 <a
-                                    href={makeWhatsAppLink(plan.name, plan.price)}
+                                    href={plan.checkoutUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className={`block w-full py-3 rounded-xl font-semibold text-center transition-all ${plan.highlight
-                                        ? "bg-emerald-500 hover:bg-emerald-400 text-black"
-                                        : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+                                            ? "bg-emerald-500 hover:bg-emerald-400 text-black"
+                                            : plan.name === "Black Elite"
+                                                ? "bg-gradient-to-r from-amber-500 to-yellow-500 hover:opacity-90 text-black"
+                                                : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
                                         }`}
                                 >
-                                    💬 Assinar {plan.name}
+                                    Assinar {plan.name} →
                                 </a>
                             </div>
                         ))}
                     </div>
                     <p className="text-center text-xs text-gray-600 mt-4">
-                        Ao clicar, você será direcionado ao WhatsApp para finalizar a assinatura
+                        🔒 Pagamento seguro · PIX / Cartão / Boleto
                     </p>
                 </div>
 
