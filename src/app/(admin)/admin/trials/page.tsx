@@ -33,6 +33,7 @@ export default function TrialsAdminPage() {
     const [grantLoading, setGrantLoading] = useState(false)
     const [grantMessage, setGrantMessage] = useState("")
     const [filter, setFilter] = useState<"all" | "active" | "expired">("all")
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
         const supabase = createClient()
@@ -92,6 +93,38 @@ export default function TrialsAdminPage() {
             fetchData()
         }
         setGrantLoading(false)
+    }
+
+    const handleGrantAccess = async (userId: string) => {
+        if (!confirm("Liberar acesso PRO permanente para este usuário?")) return
+        setActionLoading(userId + "_grant")
+        const supabase = createClient()
+        await supabase.from("profiles")
+            .update({ plan: "pro", trial_activated_at: null, trial_expires_at: null })
+            .eq("id", userId)
+        await fetchData()
+        setActionLoading(null)
+    }
+
+    const handleBlock = async (userId: string) => {
+        if (!confirm("Bloquear acesso deste usuário? O trial será expirado imediatamente.")) return
+        setActionLoading(userId + "_block")
+        const supabase = createClient()
+        // Set trial expiry to the past to immediately block access
+        await supabase.from("profiles")
+            .update({ trial_expires_at: new Date(0).toISOString() })
+            .eq("id", userId)
+        await fetchData()
+        setActionLoading(null)
+    }
+
+    const handleDelete = async (userId: string, email: string) => {
+        if (!confirm(`Tem certeza que deseja EXCLUIR o usuário ${email}? Esta ação não pode ser desfeita.`)) return
+        setActionLoading(userId + "_delete")
+        const supabase = createClient()
+        await supabase.from("profiles").delete().eq("id", userId)
+        await fetchData()
+        setActionLoading(null)
     }
 
     const now = new Date()
@@ -216,7 +249,8 @@ export default function TrialsAdminPage() {
                                         <th className="text-left pb-3 pr-4">Status</th>
                                         <th className="text-left pb-3 pr-4">Tempo Restante</th>
                                         <th className="text-left pb-3 pr-4">Parceiro</th>
-                                        <th className="text-left pb-3">Ativado em</th>
+                                        <th className="text-left pb-3 pr-4">Ativado em</th>
+                                        <th className="text-left pb-3">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -235,10 +269,41 @@ export default function TrialsAdminPage() {
                                                     <span className="text-muted-foreground text-xs">—</span>
                                                 )}
                                             </td>
-                                            <td className="py-3 text-xs text-muted-foreground">
+                                            <td className="py-3 pr-4 text-xs text-muted-foreground">
                                                 {u.trial_activated_at
                                                     ? new Date(u.trial_activated_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
                                                     : "—"}
+                                            </td>
+                                            <td className="py-3">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 px-2 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                                                        disabled={actionLoading !== null}
+                                                        onClick={() => handleGrantAccess(u.id)}
+                                                    >
+                                                        {actionLoading === u.id + "_grant" ? "..." : "✓ Liberar"}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 px-2 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                                                        disabled={actionLoading !== null}
+                                                        onClick={() => handleBlock(u.id)}
+                                                    >
+                                                        {actionLoading === u.id + "_block" ? "..." : "⛔ Bloquear"}
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 px-2 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                                        disabled={actionLoading !== null}
+                                                        onClick={() => handleDelete(u.id, u.email)}
+                                                    >
+                                                        {actionLoading === u.id + "_delete" ? "..." : "🗑 Excluir"}
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
