@@ -19,27 +19,36 @@ type RecentHistoryTableProps = {
 
 export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps) {
     const [history, setHistory] = useState<HistoryItem[]>([])
-    const supabase = createClient()
 
     useEffect(() => {
         setHistory([]) // Clear on switch
 
+        // Create a fresh client inside the effect to avoid stale closures
+        const supabase = createClient()
+
         const fetchHistory = async () => {
-            const { data } = await supabase
+            const { data, error } = await supabase
                 .from('crash_history')
                 .select('*')
                 .eq('platform', selectedPlatform)
                 .order('round_time', { ascending: false })
                 .limit(200)
 
+            if (error) {
+                console.error('[History] Fetch error:', error.message)
+            }
             if (data) setHistory(data)
         }
 
         fetchHistory()
 
-        // Realtime Subscription
+        // Polling fallback: refresh every 15s in case realtime misses updates
+        const pollInterval = setInterval(fetchHistory, 15000)
+
+        // Realtime Subscription — unique channel name to avoid conflicts
+        const channelName = `realtime_history_${selectedPlatform}_${Date.now()}`
         const channel = supabase
-            .channel(`realtime_history_${selectedPlatform}`)
+            .channel(channelName)
             .on(
                 'postgres_changes',
                 {
@@ -50,7 +59,7 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
                 },
                 (payload) => {
                     const newItem = payload.new as HistoryItem
-                    console.log('[History] New crash item:', newItem)
+                    console.log('[History] New crash item (realtime):', newItem)
                     setHistory(prev => {
                         // Prevent duplicates
                         if (prev.some(item => item.id === newItem.id)) return prev;
@@ -58,9 +67,12 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
                     })
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log(`[History] Realtime status (${selectedPlatform}):`, status)
+            })
 
         return () => {
+            clearInterval(pollInterval)
             supabase.removeChannel(channel)
         }
     }, [selectedPlatform])

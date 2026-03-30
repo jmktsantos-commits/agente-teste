@@ -21,9 +21,11 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
         blueCount: 0,
         bluePercent: 0
     })
-    const supabase = createClient()
 
     useEffect(() => {
+        // Create a fresh client inside the effect to avoid stale closures
+        const supabase = createClient()
+
         const fetchStats = async () => {
             const now = new Date()
             const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
@@ -98,19 +100,26 @@ export function StatsGrid({ selectedPlatform }: StatsGridProps) {
 
         fetchStats()
 
-        // Subscribe to updates
+        // Polling fallback: refresh every 20s in case realtime misses updates
+        const pollInterval = setInterval(fetchStats, 20000)
+
+        // Subscribe to updates — unique channel name per platform
+        const channelName = `realtime_stats_${selectedPlatform}_${Date.now()}`
         const channel = supabase
-            .channel('realtime_stats')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crash_history' }, (payload) => {
+            .channel(channelName)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'crash_history', filter: `platform=eq.${selectedPlatform}` }, (payload) => {
                 const newItem = payload.new as { platform: string }
                 // Only refetch if it's for the current platform
                 if (newItem.platform === selectedPlatform) {
                     fetchStats()
                 }
             })
-            .subscribe()
+            .subscribe((status) => {
+                console.log(`[Stats] Realtime status (${selectedPlatform}):`, status)
+            })
 
         return () => {
+            clearInterval(pollInterval)
             supabase.removeChannel(channel)
         }
     }, [selectedPlatform])
