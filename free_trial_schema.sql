@@ -88,7 +88,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Trial já está ativo', 'expires_at', v_profile.trial_expires_at);
   END IF;
 
-  v_expires_at := NOW() + INTERVAL '1 day';
+  v_expires_at := NOW() + INTERVAL '3 days';
 
   UPDATE public.profiles
   SET
@@ -116,7 +116,7 @@ BEGIN
   RETURN jsonb_build_object(
     'success', true,
     'expires_at', v_expires_at,
-    'hours', 24
+    'hours', 72
   );
 END;
 $$;
