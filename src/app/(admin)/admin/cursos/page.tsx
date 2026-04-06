@@ -9,8 +9,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -448,14 +446,21 @@ export default function AdminCoursesPage() {
                                 </div>
 
                                 <div className="flex items-center gap-2 shrink-0">
-                                    <Badge variant={mod.is_published ? "default" : "secondary"} className="text-xs hidden sm:flex">
-                                        {mod.is_published ? "Publicado" : "Rascunho"}
-                                    </Badge>
-                                    <Switch
-                                        checked={mod.is_published}
-                                        onCheckedChange={() => toggleModulePublished(mod)}
-                                        title={mod.is_published ? "Ocultar" : "Publicar"}
-                                    />
+                                    <button
+                                        onClick={() => toggleModulePublished(mod)}
+                                        className={cn(
+                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all",
+                                            mod.is_published
+                                                ? "bg-green-500/15 text-green-500 border-green-500/30 hover:bg-green-500/25"
+                                                : "bg-muted text-muted-foreground border-border hover:bg-accent"
+                                        )}
+                                        title={mod.is_published ? "Clique para ocultar" : "Clique para publicar"}
+                                    >
+                                        {mod.is_published
+                                            ? <><Eye className="h-3.5 w-3.5" /> Publicado</>
+                                            : <><EyeOff className="h-3.5 w-3.5" /> Rascunho</>
+                                        }
+                                    </button>
                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setModuleModal({ open: true, module: mod })}>
                                         <Pencil className="h-3.5 w-3.5" />
                                     </Button>
@@ -521,15 +526,21 @@ export default function AdminCoursesPage() {
                                                     </div>
 
                                                     <div className="flex items-center gap-1.5 shrink-0">
-                                                        {lesson.is_published
-                                                            ? <Eye className="h-3.5 w-3.5 text-green-500" />
-                                                            : <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        }
-                                                        <Switch
-                                                            checked={lesson.is_published}
-                                                            onCheckedChange={() => toggleLessonPublished(lesson)}
-                                                            className="scale-75"
-                                                        />
+                                                        <button
+                                                            onClick={() => toggleLessonPublished(lesson)}
+                                                            className={cn(
+                                                                "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-all",
+                                                                lesson.is_published
+                                                                    ? "bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
+                                                                    : "bg-muted text-muted-foreground border-border hover:bg-accent"
+                                                            )}
+                                                            title={lesson.is_published ? "Clique para ocultar" : "Clique para publicar"}
+                                                        >
+                                                            {lesson.is_published
+                                                                ? <><Eye className="h-3 w-3" /> Visível</>
+                                                                : <><EyeOff className="h-3 w-3" /> Oculto</>
+                                                            }
+                                                        </button>
                                                         <Button variant="ghost" size="icon" className="h-7 w-7"
                                                             onClick={() => setLessonModal({ open: true, moduleId: mod.id, lesson })}>
                                                             <Pencil className="h-3 w-3" />

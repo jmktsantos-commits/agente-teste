@@ -16,9 +16,10 @@ async function isAdmin() {
 }
 
 // PATCH /api/admin/courses/modules/[id] — update module
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     if (!(await isAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const { id } = await params
     const body = await request.json()
     const { title, description, is_published, position } = body
 
@@ -32,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const { data, error } = await supabase
         .from('course_modules')
         .update(updates)
-        .eq('id', params.id)
+        .eq('id', id)
         .select()
         .single()
 
@@ -41,14 +42,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 // DELETE /api/admin/courses/modules/[id] — delete module (cascades to lessons)
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     if (!(await isAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+    const { id } = await params
     const supabase = adminSupabase()
     const { error } = await supabase
         .from('course_modules')
         .delete()
-        .eq('id', params.id)
+        .eq('id', id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true })
