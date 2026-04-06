@@ -1,10 +1,9 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { PlayCircle, CheckCircle, BookOpen, GraduationCap, Clock, ChevronDown, ChevronUp, X, Loader2 } from "lucide-react"
+import { PlayCircle, CheckCircle, BookOpen, GraduationCap, Clock, ChevronDown, ChevronUp, X, Loader2, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/utils/supabase/client"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -109,33 +108,24 @@ export default function EducationPage() {
     const [completedLessons, setCompletedLessons] = useState<Set<string>>(new Set())
     const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
     const [activeLesson, setActiveLesson] = useState<Lesson | null>(null)
-
-    const supabase = createClient()
+    const [fetchError, setFetchError] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
         setLoading(true)
+        setFetchError(null)
         try {
-            // Fetch published modules + lessons
-            const { data: modulesData } = await supabase
-                .from("course_modules")
-                .select(`
-                    *,
-                    course_lessons (id, title, video_url, duration, position, is_published, module_id)
-                `)
-                .eq("is_published", true)
-                .order("position", { ascending: true })
+            // Use API route (service_role key) — bypasses RLS
+            // This works even if RLS policies aren't configured in Supabase
+            const modulesRes = await fetch("/api/courses/modules")
+            if (!modulesRes.ok) {
+                const err = await modulesRes.json().catch(() => ({}))
+                throw new Error(err.error || `HTTP ${modulesRes.status}`)
+            }
+            const modulesData = await modulesRes.json()
 
-            if (modulesData) {
-                // Filter only published lessons and sort
-                const filtered = modulesData.map(m => ({
-                    ...m,
-                    course_lessons: (m.course_lessons || [])
-                        .filter((l: Lesson) => l.is_published)
-                        .sort((a: Lesson, b: Lesson) => a.position - b.position)
-                }))
-                setModules(filtered)
-                // Auto-expand all modules
-                setExpandedModules(new Set(filtered.map((m: Module) => m.id)))
+            if (Array.isArray(modulesData)) {
+                setModules(modulesData)
+                setExpandedModules(new Set(modulesData.map((m: Module) => m.id)))
             }
 
             // Fetch user progress
@@ -145,11 +135,13 @@ export default function EducationPage() {
                 setCompletedLessons(new Set(progressData.map((p: { lesson_id: string }) => p.lesson_id)))
             }
         } catch (e) {
-            console.error("Error fetching course data", e)
+            const msg = e instanceof Error ? e.message : 'Erro desconhecido'
+            console.error("Error fetching course data:", msg)
+            setFetchError(msg)
         } finally {
             setLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => { fetchData() }, [fetchData])
 
@@ -206,6 +198,13 @@ export default function EducationPage() {
             {loading ? (
                 <div className="flex items-center justify-center h-48">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : fetchError ? (
+                <div className="flex flex-col items-center justify-center h-48 bg-red-500/5 rounded-2xl border border-red-500/20 text-slate-400">
+                    <AlertCircle className="h-10 w-10 mb-3 text-red-500/50" />
+                    <p className="font-medium text-red-400">Erro ao carregar o conteúdo</p>
+                    <p className="text-xs text-slate-500 mt-1">{fetchError}</p>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={fetchData}>Tentar novamente</Button>
                 </div>
             ) : modules.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-48 bg-slate-900 rounded-2xl border border-slate-800 text-slate-400">
