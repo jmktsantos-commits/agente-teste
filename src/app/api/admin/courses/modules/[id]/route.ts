@@ -1,0 +1,55 @@
+import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createServerClient } from '@/utils/supabase/server'
+
+const adminSupabase = () => createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+async function isAdmin() {
+    const supabase = await createServerClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+    const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    return data?.role === 'admin'
+}
+
+// PATCH /api/admin/courses/modules/[id] — update module
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+    if (!(await isAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const body = await request.json()
+    const { title, description, is_published, position } = body
+
+    const updates: Record<string, unknown> = {}
+    if (title !== undefined) updates.title = title.trim()
+    if (description !== undefined) updates.description = description?.trim() || null
+    if (is_published !== undefined) updates.is_published = is_published
+    if (position !== undefined) updates.position = position
+
+    const supabase = adminSupabase()
+    const { data, error } = await supabase
+        .from('course_modules')
+        .update(updates)
+        .eq('id', params.id)
+        .select()
+        .single()
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+}
+
+// DELETE /api/admin/courses/modules/[id] — delete module (cascades to lessons)
+export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+    if (!(await isAdmin())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const supabase = adminSupabase()
+    const { error } = await supabase
+        .from('course_modules')
+        .delete()
+        .eq('id', params.id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+}

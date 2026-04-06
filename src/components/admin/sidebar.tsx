@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, MessageSquare, Settings, LogOut, LayoutDashboard, ArrowLeft, Shield, GitMerge, Gift } from "lucide-react"
+import { Users, MessageSquare, Settings, LogOut, LayoutDashboard, ArrowLeft, Shield, GitMerge, Gift, GraduationCap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/utils/supabase/client"
@@ -45,6 +45,12 @@ export function AdminSidebar({ className }: SidebarProps) {
             label: "Free Trials",
             icon: Gift,
             active: pathname.startsWith("/admin/trials"),
+        },
+        {
+            href: "/admin/cursos",
+            label: "Cursos / Aulas",
+            icon: GraduationCap,
+            active: pathname.startsWith("/admin/cursos"),
         },
         {
             href: "/admin/communications",
