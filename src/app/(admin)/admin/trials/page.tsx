@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, RefreshCw, UserCheck, UserX, Trash2, ShieldAlert, Clock, Users } from "lucide-react"
+import { Search, RefreshCw, UserCheck, UserX, Trash2, ShieldAlert, Clock, Users, LogOut } from "lucide-react"
 
 interface TrialUser {
     id: string
@@ -141,6 +141,20 @@ export default function TrialsAdminPage() {
             fetchData(true)
         } catch (e: unknown) {
             alert(`Erro ao excluir: ${e instanceof Error ? e.message : e}`)
+        }
+        setActionLoading(null)
+    }
+
+    // ── Forçar logout imediato (revogar JWT mesmo estando navegando)
+    const handleForceLogout = async (userId: string, name: string) => {
+        if (!confirm(`Encerrar sessão de ${name} imediatamente? Ele será deslogado agora.`)) return
+        setActionLoading(userId + "_logout")
+        try {
+            await callAdminAction("force_logout", userId)
+            showToast(`🔒 Sessão de ${name} encerrada — ele foi deslogado.`)
+            fetchData(true)
+        } catch (e: unknown) {
+            alert(`Erro ao encerrar sessão: ${e instanceof Error ? e.message : e}`)
         }
         setActionLoading(null)
     }
@@ -432,11 +446,23 @@ export default function TrialsAdminPage() {
                                                             disabled={actionLoading !== null}
                                                             onClick={() => handleBlock(u.id, u.full_name || u.email)}
                                                             className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-all"
+                                                            title="Bloquear acesso"
                                                         >
                                                             {actionLoading === u.id + "_block"
                                                                 ? <RefreshCw className="h-3 w-3 animate-spin" />
                                                                 : <UserX className="h-3 w-3" />}
                                                             <span className="hidden sm:inline">Bloquear</span>
+                                                        </button>
+                                                        <button
+                                                            disabled={actionLoading !== null}
+                                                            onClick={() => handleForceLogout(u.id, u.full_name || u.email)}
+                                                            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-orange-500/30 text-orange-400 hover:bg-orange-500/10 disabled:opacity-40 transition-all"
+                                                            title="Forçar logout (encerrar sessão agora)"
+                                                        >
+                                                            {actionLoading === u.id + "_logout"
+                                                                ? <RefreshCw className="h-3 w-3 animate-spin" />
+                                                                : <LogOut className="h-3 w-3" />}
+                                                            <span className="hidden sm:inline">Logout</span>
                                                         </button>
                                                         <button
                                                             disabled={actionLoading !== null}

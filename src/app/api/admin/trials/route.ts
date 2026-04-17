@@ -6,7 +6,8 @@ import { createClient as createServerClient } from '@/utils/supabase/server'
 function adminSupabase() {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
     )
 }
 
@@ -46,10 +47,12 @@ export async function POST(request: NextRequest) {
     try {
         switch (action) {
 
-            // ── BLOQUEAR individualmente: expira trial imediatamente
+            // ── BLOQUEAR: expira trial + invalida sessão JWT imediatamente
             case 'block': {
                 if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
-                const { error } = await supabase
+
+                // 1. Marcar trial como expirado no banco
+                const { error: dbError } = await supabase
                     .from('profiles')
                     .update({
                         plan: 'trial',
@@ -57,8 +60,17 @@ export async function POST(request: NextRequest) {
                     })
                     .eq('id', userId)
 
-                if (error) throw error
-                return NextResponse.json({ success: true, message: 'Usuário bloqueado com sucesso.' })
+                if (dbError) throw dbError
+
+                // 2. INVALIDAR SESSÃO: revoga todos os tokens JWT do usuário
+                //    Isso expulsa ele imediatamente, mesmo que esteja navegando agora
+                const { error: signOutError } = await supabase.auth.admin.signOut(userId, 'global')
+                if (signOutError) {
+                    console.warn('[admin/trials] Aviso: não foi possível invalidar sessão:', signOutError.message)
+                    // Não lançar erro — o bloqueio no banco é suficiente para próximas visitas
+                }
+
+                return NextResponse.json({ success: true, message: 'Usuário bloqueado e sessão encerrada.' })
             }
 
             // ── LIBERAR ACESSO PRO
@@ -80,6 +92,11 @@ export async function POST(request: NextRequest) {
             // ── EXCLUIR USUÁRIO
             case 'delete': {
                 if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
+
+                // 1. Invalidar sessão antes de deletar
+                await supabase.auth.admin.signOut(userId, 'global').catch(() => {})
+
+                // 2. Deletar perfil
                 const { error } = await supabase
                     .from('profiles')
                     .delete()
@@ -107,12 +124,30 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: true, expires_at: expiresAt, message: 'Trial ativado por 72h.' })
             }
 
+            // ── FORÇAR LOGOUT SEM BLOQUEAR (apenas encerrar sessão)
+            case 'force_logout': {
+                if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
+
+                const { error } = await supabase.auth.admin.signOut(userId, 'global')
+                if (error) throw error
+
+                return NextResponse.json({ success: true, message: 'Sessão do usuário encerrada.' })
+            }
+
             // ── BLOQUEAR TODOS com trial_activated_at > 72h atrás
-            //    (ativação mais antiga que 72h = deveria estar expirado)
             case 'block_all_overdue': {
                 const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString()
 
-                const { error, count } = await supabase
+                // Buscar IDs dos afetados para invalidar sessões
+                const { data: affected } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('plan', 'trial')
+                    .not('role', 'in', '("admin","affiliate")')
+                    .lt('trial_activated_at', cutoff)
+
+                // Bloquear no banco
+                const { error } = await supabase
                     .from('profiles')
                     .update({
                         plan: 'trial',
@@ -123,10 +158,18 @@ export async function POST(request: NextRequest) {
                     .lt('trial_activated_at', cutoff)
 
                 if (error) throw error
+
+                // Invalidar sessões de todos
+                const signOutResults = await Promise.allSettled(
+                    (affected || []).map(u => supabase.auth.admin.signOut(u.id, 'global'))
+                )
+                const sessionsInvalidated = signOutResults.filter(r => r.status === 'fulfilled').length
+
                 return NextResponse.json({
                     success: true,
-                    blocked: count ?? 0,
-                    message: `Usuários com trial vencido foram bloqueados.`
+                    blocked: affected?.length ?? 0,
+                    sessionsInvalidated,
+                    message: `${affected?.length ?? 0} usuários bloqueados e ${sessionsInvalidated} sessões encerradas.`
                 })
             }
 
