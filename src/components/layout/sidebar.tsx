@@ -123,12 +123,21 @@ export function Sidebar({ className }: SidebarProps) {
     )
 }
 
+// Itens fixos da barra mobile — exatamente os que devem aparecer
+const mobileRoutes = [
+    { label: "Início",     icon: History,       href: "/historico" },
+    { label: "Histórico",  icon: LayoutDashboard, href: "/dashboard" },
+    { label: "Cassino",    icon: Gamepad2,      href: "/cassino" },
+    { label: "Aprender",   icon: GraduationCap, href: "/aprender" },
+    { label: "Live",       icon: Radio,         href: "/live" },
+]
+
 export function MobileNav() {
     const pathname = usePathname()
 
     return (
         <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background/95 backdrop-blur-xl border-t border-border flex justify-around items-center md:hidden px-2 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
-            {routes.slice(0, 5).map((route) => {
+            {mobileRoutes.map((route) => {
                 const isActive = pathname === route.href
                 return (
                     <Link
@@ -143,10 +152,11 @@ export function MobileNav() {
                             <div className="absolute -top-[1px] w-8 h-[2px] bg-primary rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]" />
                         )}
                         <route.icon className={cn("h-5 w-5", isActive && "animate-pulse")} />
-                        <span className="text-[9px] font-medium">{route.label.split(' ')[0]}</span>
+                        <span className="text-[9px] font-medium">{route.label}</span>
                     </Link>
                 )
             })}
         </div>
     )
 }
+
