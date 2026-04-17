@@ -106,7 +106,7 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
             <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                     <History className="w-5 h-5 text-slate-400" />
-                    Histórico - {selectedPlatform === 'bravobet' ? 'Bravobet' : selectedPlatform === 'esportivabet' ? 'EsportivaBet' : 'Superbet'}
+                    Histórico - {selectedPlatform === 'bravobet' ? '1PARA1' : selectedPlatform === 'esportivabet' ? 'EsportivaBet' : 'Superbet'}
                     <span className="text-xs font-normal text-slate-500 ml-auto bg-slate-800 px-2 py-1 rounded">200 velas</span>
                 </CardTitle>
             </CardHeader>

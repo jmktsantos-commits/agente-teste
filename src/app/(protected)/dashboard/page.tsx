@@ -61,7 +61,7 @@ export default function DashboardPage() {
 
                 <Tabs defaultValue="bravobet" className="w-full max-w-[600px]" onValueChange={(v: string) => setSelectedPlatform(v as Platform)}>
                     <TabsList className="grid w-full grid-cols-3 bg-slate-900 border border-slate-800 h-12 p-1">
-                        <TabsTrigger value="bravobet" className="text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white h-full">BRAVOBET</TabsTrigger>
+                        <TabsTrigger value="bravobet" className="text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white h-full">1PARA1</TabsTrigger>
                         <TabsTrigger value="esportivabet" className="text-xs font-bold data-[state=active]:bg-green-600 data-[state=active]:text-white h-full">ESPORTIVABET</TabsTrigger>
                         <TabsTrigger value="superbet" className="text-xs font-bold data-[state=active]:bg-pink-600 data-[state=active]:text-white h-full">SUPERBET</TabsTrigger>
                     </TabsList>
