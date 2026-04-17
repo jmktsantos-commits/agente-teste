@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial', '/trial-expirado']
 const PUBLIC_EXACT_PATHS = ['/'] // Landing page — acesso público sem login
 
-// Planos que NÃO devem ser bloqueados mesmo com trial expirado
+// Planos pagos — NUNCA bloqueados mesmo com trial expirado
 const PAID_PLANS = ['starter', 'anual', 'black', 'paid', 'premium', 'active', 'vip', 'pro', 'monthly', 'annual']
 
 export async function updateSession(request: NextRequest) {
@@ -36,22 +36,18 @@ export async function updateSession(request: NextRequest) {
         PUBLIC_EXACT_PATHS.includes(request.nextUrl.pathname) ||
         AUTH_FREE_PATHS.some(p => request.nextUrl.pathname.startsWith(p))
 
-    // API routes handle their own auth (service role) — never strip their session cookies
+    // API routes gerenciam a própria autenticação — não tocar
     const isApiRoute = request.nextUrl.pathname.startsWith('/api')
+    if (isApiRoute) return response
 
-    if (isApiRoute) {
-        return response // Pass through — don't touch API requests
-    }
-
-    // No session on a protected path → redirect to login
+    // Sem sessão em rota protegida → login
     if (!user && !isAuthFreePath) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    // Verificar se trial expirou — só bloqueia plano 'trial' expirado
-    // Nunca bloqueia: admins, usuários com plano pago, ou usuários free sem trial
+    // ── VERIFICAÇÃO DE ACESSO (trial expirado) ──────────────────────────────
     if (user && !isAuthFreePath) {
         const { data: profile } = await supabase
             .from('profiles')
@@ -59,23 +55,34 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
-        // Admins e usuários com plano pago nunca são bloqueados
+        // Admins e afiliados: acesso irrestrito
         const isAdmin = profile?.role === 'admin' || profile?.role === 'affiliate'
+        if (isAdmin) return response
+
+        // Planos pagos: acesso irrestrito
         const isPaid = profile?.plan && PAID_PLANS.includes(profile.plan)
+        if (isPaid) return response
 
-        if (!isAdmin && !isPaid) {
-            const now = new Date()
-            const trialExpired = profile?.trial_expires_at && new Date(profile.trial_expires_at) < now
+        const now = new Date()
 
-            // Só bloqueia quem ainda tem plan='trial' expirado
-            // Usuários com plan='free' podem ter vindo de outros fluxos — não bloquear automaticamente
-            const shouldBlock = profile?.plan === 'trial' && trialExpired
-
-            if (shouldBlock) {
+        // ── REGRA PRINCIPAL: qualquer usuário sem plano pago que tenha
+        //    trial_expires_at definido e expirado → BLOQUEADO.
+        //    Cobre: plan='trial', plan='free' (mudado após expiração), plan=null.
+        if (profile?.trial_expires_at) {
+            const expiredAt = new Date(profile.trial_expires_at)
+            if (expiredAt <= now) {
                 const url = request.nextUrl.clone()
                 url.pathname = '/trial-expirado'
                 return NextResponse.redirect(url)
             }
+        }
+
+        // ── REGRA EXTRA: plan='trial' sem data de expiração (trial "congelado")
+        //    → bloqueia para forçar resolução administrativa
+        if (profile?.plan === 'trial' && !profile?.trial_expires_at) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/trial-expirado'
+            return NextResponse.redirect(url)
         }
     }
 
