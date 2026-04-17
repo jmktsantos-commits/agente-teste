@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+// anon client — usado apenas para leitura
 import { createClient } from "@/utils/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -95,35 +96,50 @@ export default function TrialsAdminPage() {
         setGrantLoading(false)
     }
 
+    const callAdminAction = async (action: string, userId: string) => {
+        const res = await fetch('/api/admin/trials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, userId }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Erro desconhecido')
+        return data
+    }
+
     const handleGrantAccess = async (userId: string) => {
         if (!confirm("Liberar acesso PRO permanente para este usuário?")) return
         setActionLoading(userId + "_grant")
-        const supabase = createClient()
-        await supabase.from("profiles")
-            .update({ plan: "pro", trial_activated_at: null, trial_expires_at: null })
-            .eq("id", userId)
-        await fetchData()
+        try {
+            await callAdminAction('grant', userId)
+            await fetchData()
+        } catch (e: unknown) {
+            alert(`Erro: ${e instanceof Error ? e.message : e}`)
+        }
         setActionLoading(null)
     }
 
     const handleBlock = async (userId: string) => {
         if (!confirm("Bloquear acesso deste usuário? O trial será expirado imediatamente.")) return
         setActionLoading(userId + "_block")
-        const supabase = createClient()
-        // Set trial expiry to the past to immediately block access
-        await supabase.from("profiles")
-            .update({ trial_expires_at: new Date(0).toISOString() })
-            .eq("id", userId)
-        await fetchData()
+        try {
+            await callAdminAction('block', userId)
+            await fetchData()
+        } catch (e: unknown) {
+            alert(`Erro ao bloquear: ${e instanceof Error ? e.message : e}`)
+        }
         setActionLoading(null)
     }
 
     const handleDelete = async (userId: string, email: string) => {
         if (!confirm(`Tem certeza que deseja EXCLUIR o usuário ${email}? Esta ação não pode ser desfeita.`)) return
         setActionLoading(userId + "_delete")
-        const supabase = createClient()
-        await supabase.from("profiles").delete().eq("id", userId)
-        await fetchData()
+        try {
+            await callAdminAction('delete', userId)
+            await fetchData()
+        } catch (e: unknown) {
+            alert(`Erro ao excluir: ${e instanceof Error ? e.message : e}`)
+        }
         setActionLoading(null)
     }
 
