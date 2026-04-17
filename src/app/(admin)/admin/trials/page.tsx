@@ -145,7 +145,7 @@ export default function TrialsAdminPage() {
         setActionLoading(null)
     }
 
-    // ── Bloquear TODOS os expirados de uma vez
+    // ── Bloquear TODOS expirados pelo tempo (trial_expires_at <= now)
     const handleBlockAllExpired = async () => {
         const expired = trialUsers.filter(u => u.trial_expires_at && new Date(u.trial_expires_at) <= now)
         if (expired.length === 0) { showToast("Nenhum trial expirado para bloquear."); return }
@@ -157,6 +157,25 @@ export default function TrialsAdminPage() {
         }
         showToast(`⛔ ${ok} usuários bloqueados.`)
         await fetchData(true)
+        setBulkLoading(false)
+    }
+
+    // ── Corrigir ativados há mais de 72h que ainda aparecem como ativos
+    const handleBlockAllOverdue = async () => {
+        if (!confirm("Bloquear todos os usuários cujo trial foi ativado há mais de 72h? Isso corrige quem foi re-ativado por engano.")) return
+        setBulkLoading(true)
+        try {
+            const res = await fetch('/api/admin/trials', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'block_all_overdue' }),
+            })
+            const data = await res.json()
+            showToast(`⛔ ${data.blocked ?? 0} usuários com trial vencido (> 72h desde ativação) foram bloqueados.`)
+            await fetchData(true)
+        } catch (e: unknown) {
+            alert(`Erro: ${e instanceof Error ? e.message : e}`)
+        }
         setBulkLoading(false)
     }
 
@@ -178,6 +197,13 @@ export default function TrialsAdminPage() {
 
     const activeCount = trialUsers.filter(u => u.trial_expires_at && new Date(u.trial_expires_at) > now).length
     const expiredCount = trialUsers.filter(u => !u.trial_expires_at || new Date(u.trial_expires_at) <= now).length
+    // Ativados há mais de 72h mas ainda aparecem com trial_expires_at > now (dados errados)
+    const overdueCount = trialUsers.filter(u => {
+        if (!u.trial_activated_at) return false
+        const activatedMoreThan72hAgo = new Date(u.trial_activated_at).getTime() < now.getTime() - 72 * 3600 * 1000
+        const appearsActive = u.trial_expires_at && new Date(u.trial_expires_at) > now
+        return activatedMoreThan72hAgo && appearsActive
+    }).length
 
     const getStatusBadge = (u: TrialUser) => {
         if (!u.trial_expires_at) {
@@ -217,7 +243,7 @@ export default function TrialsAdminPage() {
                     <h1 className="text-2xl font-bold tracking-tight">Gestão de Trials</h1>
                     <p className="text-muted-foreground mt-1 text-sm">Gerencie os acessos gratuitos de 72h.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
                     <Button
                         variant="outline"
                         size="sm"
@@ -228,6 +254,18 @@ export default function TrialsAdminPage() {
                         <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
                         Atualizar
                     </Button>
+                    {overdueCount > 0 && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 text-xs text-orange-400 border-orange-500/30 hover:bg-orange-500/10"
+                            onClick={handleBlockAllOverdue}
+                            disabled={bulkLoading}
+                        >
+                            <ShieldAlert className="h-3.5 w-3.5" />
+                            {bulkLoading ? "Corrigindo..." : `Corrigir dados errados (${overdueCount})`}
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         size="sm"
@@ -236,7 +274,7 @@ export default function TrialsAdminPage() {
                         disabled={bulkLoading || expiredCount === 0}
                     >
                         <ShieldAlert className="h-3.5 w-3.5" />
-                        {bulkLoading ? "Bloqueando..." : `Bloquear todos expirados (${expiredCount})`}
+                        {bulkLoading ? "Bloqueando..." : `Bloquear expirados (${expiredCount})`}
                     </Button>
                 </div>
             </div>
@@ -247,7 +285,7 @@ export default function TrialsAdminPage() {
                     { label: "Total", value: trialUsers.length, color: "text-blue-400", icon: Users },
                     { label: "Ativos", value: activeCount, color: "text-emerald-400", icon: UserCheck },
                     { label: "Expirados", value: expiredCount, color: "text-red-400", icon: UserX },
-                    { label: "Expirando em < 6h", value: trialUsers.filter(u => { if (!u.trial_expires_at) return false; const diff = new Date(u.trial_expires_at).getTime() - now.getTime(); return diff > 0 && diff < 6 * 3600 * 1000 }).length, color: "text-amber-400", icon: Clock },
+                    { label: "Dados errados (⚠️ ativado > 72h)", value: overdueCount, color: overdueCount > 0 ? "text-orange-400" : "text-muted-foreground", icon: ShieldAlert },
                 ].map((s, i) => (
                     <Card key={i} className="border-slate-800">
                         <CardContent className="pt-5 pb-4">

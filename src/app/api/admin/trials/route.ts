@@ -26,20 +26,19 @@ async function verifyAdmin() {
     return user
 }
 
-// ──────────────────────────────────────────────────────────────
 // POST /api/admin/trials
-// Body: { action: 'block' | 'grant' | 'delete' | 'activate', userId: string }
-// ──────────────────────────────────────────────────────────────
+// Body: { action: string, userId?: string }
 export async function POST(request: NextRequest) {
     const admin = await verifyAdmin()
     if (!admin) {
         return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
     }
 
-    const { action, userId } = await request.json()
+    const body = await request.json()
+    const { action, userId } = body
 
-    if (!action || !userId) {
-        return NextResponse.json({ error: 'action e userId são obrigatórios' }, { status: 400 })
+    if (!action) {
+        return NextResponse.json({ error: 'action é obrigatório' }, { status: 400 })
     }
 
     const supabase = adminSupabase()
@@ -47,13 +46,14 @@ export async function POST(request: NextRequest) {
     try {
         switch (action) {
 
-            // ── BLOQUEAR: expira trial imediatamente (1970-01-01)
+            // ── BLOQUEAR individualmente: expira trial imediatamente
             case 'block': {
+                if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
                 const { error } = await supabase
                     .from('profiles')
                     .update({
-                        plan: 'trial',                          // garante plan=trial para o middleware pegar
-                        trial_expires_at: new Date(0).toISOString(), // 1970 = expirado
+                        plan: 'trial',
+                        trial_expires_at: new Date(0).toISOString(),
                     })
                     .eq('id', userId)
 
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
 
             // ── LIBERAR ACESSO PRO
             case 'grant': {
+                if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
                 const { error } = await supabase
                     .from('profiles')
                     .update({
@@ -78,6 +79,7 @@ export async function POST(request: NextRequest) {
 
             // ── EXCLUIR USUÁRIO
             case 'delete': {
+                if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
                 const { error } = await supabase
                     .from('profiles')
                     .delete()
@@ -87,8 +89,9 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: true, message: 'Usuário excluído.' })
             }
 
-            // ── ATIVAR TRIAL (+72h a partir de agora)
+            // ── ATIVAR TRIAL individual (+72h a partir de agora)
             case 'activate': {
+                if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
                 const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
                 const { error } = await supabase
                     .from('profiles')
@@ -102,6 +105,29 @@ export async function POST(request: NextRequest) {
 
                 if (error) throw error
                 return NextResponse.json({ success: true, expires_at: expiresAt, message: 'Trial ativado por 72h.' })
+            }
+
+            // ── BLOQUEAR TODOS com trial_activated_at > 72h atrás
+            //    (ativação mais antiga que 72h = deveria estar expirado)
+            case 'block_all_overdue': {
+                const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString()
+
+                const { error, count } = await supabase
+                    .from('profiles')
+                    .update({
+                        plan: 'trial',
+                        trial_expires_at: new Date(0).toISOString(),
+                    })
+                    .eq('plan', 'trial')
+                    .not('role', 'in', '("admin","affiliate")')
+                    .lt('trial_activated_at', cutoff)
+
+                if (error) throw error
+                return NextResponse.json({
+                    success: true,
+                    blocked: count ?? 0,
+                    message: `Usuários com trial vencido foram bloqueados.`
+                })
             }
 
             default:
