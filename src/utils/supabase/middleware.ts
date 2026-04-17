@@ -55,12 +55,21 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
+        // ── PERFIL INEXISTENTE: usuário tem sessão mas foi removido do banco
+        //    → deslogar e redirecionar para login
+        if (!profile) {
+            await supabase.auth.signOut()
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
+
         // Admins e afiliados: acesso irrestrito
-        const isAdmin = profile?.role === 'admin' || profile?.role === 'affiliate'
+        const isAdmin = profile.role === 'admin' || profile.role === 'affiliate'
         if (isAdmin) return response
 
         // Planos pagos: acesso irrestrito
-        const isPaid = profile?.plan && PAID_PLANS.includes(profile.plan)
+        const isPaid = profile.plan && PAID_PLANS.includes(profile.plan)
         if (isPaid) return response
 
         const now = new Date()
@@ -68,7 +77,7 @@ export async function updateSession(request: NextRequest) {
         // ── REGRA PRINCIPAL: qualquer usuário sem plano pago que tenha
         //    trial_expires_at definido e expirado → BLOQUEADO.
         //    Cobre: plan='trial', plan='free' (mudado após expiração), plan=null.
-        if (profile?.trial_expires_at) {
+        if (profile.trial_expires_at) {
             const expiredAt = new Date(profile.trial_expires_at)
             if (expiredAt <= now) {
                 const url = request.nextUrl.clone()
@@ -79,7 +88,7 @@ export async function updateSession(request: NextRequest) {
 
         // ── REGRA EXTRA: plan='trial' sem data de expiração (trial "congelado")
         //    → bloqueia para forçar resolução administrativa
-        if (profile?.plan === 'trial' && !profile?.trial_expires_at) {
+        if (profile.plan === 'trial' && !profile.trial_expires_at) {
             const url = request.nextUrl.clone()
             url.pathname = '/trial-expirado'
             return NextResponse.redirect(url)
