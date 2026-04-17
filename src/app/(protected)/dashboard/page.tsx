@@ -7,13 +7,12 @@ import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { RecentHistoryTable } from "@/components/features/dashboard/recent-history"
 import { SignalCard } from "@/components/features/dashboard/signal-card"
 import { StatsGrid } from "@/components/features/dashboard/stats-grid"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Platform } from "@/lib/prediction-engine"
 
 const ESPORTIVABET_URL = "https://go.aff.esportiva.bet/8ywkf5b2?utm_campaign=site"
 
 export default function DashboardPage() {
-    const [selectedPlatform, setSelectedPlatform] = useState<Platform>("bravobet")
+    const selectedPlatform: Platform = "bravobet"
     const [popupOpen, setPopupOpen] = useState(false)
     const [popupRef, setPopupRef] = useState<Window | null>(null)
 
@@ -59,13 +58,10 @@ export default function DashboardPage() {
                     Plataforma de Análise
                 </h1>
 
-                <Tabs defaultValue="bravobet" className="w-full max-w-[600px]" onValueChange={(v: string) => setSelectedPlatform(v as Platform)}>
-                    <TabsList className="grid w-full grid-cols-3 bg-slate-900 border border-slate-800 h-12 p-1">
-                        <TabsTrigger value="bravobet" className="text-xs font-bold data-[state=active]:bg-purple-600 data-[state=active]:text-white h-full">1PARA1</TabsTrigger>
-                        <TabsTrigger value="esportivabet" className="text-xs font-bold data-[state=active]:bg-green-600 data-[state=active]:text-white h-full">ESPORTIVABET</TabsTrigger>
-                        <TabsTrigger value="superbet" className="text-xs font-bold data-[state=active]:bg-pink-600 data-[state=active]:text-white h-full">SUPERBET</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-5 py-2">
+                    <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+                    <span className="text-sm font-bold text-purple-300 tracking-widest uppercase">1PARA1</span>
+                </div>
             </div>
 
             {/* 1. Signal Card */}
