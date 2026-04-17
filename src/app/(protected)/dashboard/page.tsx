@@ -16,7 +16,7 @@ export default function DashboardPage() {
     const [iframeError, setIframeError] = useState(false)
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             {/* Top Section: Title + Badge */}
             <div className="flex flex-col items-center gap-6 py-6">
                 <h1 className="text-3xl md:text-4xl font-black uppercase tracking-wider bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent text-center">
@@ -44,8 +44,8 @@ export default function DashboardPage() {
                 <RecentHistoryTable selectedPlatform={selectedPlatform} />
             </ErrorBoundary>
 
-            {/* 4. Iframe 1PARA1 */}
-            <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-purple-500/10">
+            {/* 4. Iframe 1PARA1 — tela cheia */}
+            <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-purple-500/10 flex flex-col" style={{ height: "calc(100vh - 80px)", minHeight: "600px" }}>
                 {/* Header da seção */}
                 <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-white/10">
                     <div className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Iframe */}
-                <div className="relative bg-slate-950" style={{ height: "600px" }}>
+                <div className="relative bg-slate-950 flex-1" style={{ minHeight: "500px" }}>
                     {/* Loading skeleton */}
                     {iframeLoading && !iframeError && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950">
@@ -106,9 +106,11 @@ export default function DashboardPage() {
                         src={CASINO_URL}
                         title="1PARA1 — Aviator"
                         className={`w-full h-full border-0 transition-opacity duration-500 ${iframeLoading || iframeError ? "opacity-0" : "opacity-100"}`}
+                        style={{ display: "block", overflow: "hidden" }}
                         onLoad={() => setIframeLoading(false)}
                         onError={() => { setIframeError(true); setIframeLoading(false) }}
                         allow="fullscreen"
+                        scrolling="no"
                     />
                 </div>
 
