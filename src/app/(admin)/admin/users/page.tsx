@@ -35,10 +35,13 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
     })
     const [loading, setLoading] = useState(false)
     const [toast, setToast] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
+    const [createdUser, setCreatedUser] = useState<{ email: string; password: string; magicLink?: string } | null>(null)
+    const [linkLoading, setLinkLoading] = useState(false)
+    const [copied, setCopied] = useState(false)
 
     const showToast = (type: 'success' | 'error', msg: string) => {
         setToast({ type, msg })
-        setTimeout(() => setToast(null), 4000)
+        setTimeout(() => setToast(null), 5000)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -62,13 +65,35 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
             const data = await res.json()
             if (!res.ok || !data.success) throw new Error(data.error || 'Erro ao criar usuário')
 
-            showToast('success', `✅ ${data.message}`)
+            // Gerar link mágico automaticamente
+            setLinkLoading(true)
+            const linkRes = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'generate_magic_link', email: form.email }),
+            })
+            const linkData = await linkRes.json()
+
+            setCreatedUser({
+                email: form.email,
+                password: form.password,
+                magicLink: linkData.magicLink,
+            })
+            setLinkLoading(false)
+
+            showToast('success', `✅ Usuário ${form.email} criado! Compartilhe as credenciais abaixo.`)
             setForm({ email: '', password: '', fullName: '', plan: 'trial', role: 'user' })
             onCreated()
         } catch (err: unknown) {
             showToast('error', err instanceof Error ? err.message : 'Erro desconhecido')
         }
         setLoading(false)
+    }
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
     }
 
     return (
@@ -91,6 +116,61 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
                         }`}>
                         {toast.type === 'success' ? <Check className="h-4 w-4 shrink-0" /> : <X className="h-4 w-4 shrink-0" />}
                         {toast.msg}
+                    </div>
+                )}
+
+                {/* Credenciais do usuário recém criado */}
+                {createdUser && (
+                    <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-3">
+                        <p className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
+                            <Check className="h-4 w-4" /> Usuário criado — compartilhe as credenciais abaixo:
+                        </p>
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                            <div className="flex items-center justify-between gap-2 bg-black/20 rounded-lg px-3 py-2">
+                                <div>
+                                    <span className="text-xs text-muted-foreground">Email:</span>
+                                    <p className="text-white font-mono">{createdUser.email}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2 bg-black/20 rounded-lg px-3 py-2">
+                                <div>
+                                    <span className="text-xs text-muted-foreground">Senha:</span>
+                                    <p className="text-white font-mono">{createdUser.password}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {linkLoading && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Gerando link de acesso...
+                            </div>
+                        )}
+                        {createdUser.magicLink && (
+                            <div className="space-y-1.5">
+                                <p className="text-xs text-muted-foreground">🔗 Link de acesso direto (válido por 24h):</p>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-xs font-mono text-purple-300 bg-black/30 rounded px-2 py-1.5 flex-1 truncate">
+                                        {createdUser.magicLink}
+                                    </p>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="shrink-0 h-7 text-xs border-purple-500/30"
+                                        onClick={() => copyToClipboard(createdUser.magicLink!)}
+                                    >
+                                        {copied ? <Check className="h-3 w-3 text-emerald-400" /> : 'Copiar'}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">💡 Envie este link pelo WhatsApp — o usuário clica e entra direto sem precisar de senha.</p>
+                            </div>
+                        )}
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs text-muted-foreground"
+                            onClick={() => setCreatedUser(null)}
+                        >
+                            Fechar
+                        </Button>
                     </div>
                 )}
 

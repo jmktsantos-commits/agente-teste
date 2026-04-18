@@ -90,6 +90,55 @@ export async function POST(request: NextRequest) {
                 })
             }
 
+            // ── GERAR LINK MÁGICO DE ACESSO (admin copia e envia pro usuário)
+            case 'generate_magic_link': {
+                const { email } = body
+                if (!email) return NextResponse.json({ error: 'Email obrigatório.' }, { status: 400 })
+
+                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://agente-teste-pi.vercel.app'
+
+                const { data, error } = await supabase.auth.admin.generateLink({
+                    type: 'magiclink',
+                    email,
+                    options: {
+                        redirectTo: `${siteUrl}/dashboard`,
+                    }
+                })
+
+                if (error) throw error
+
+                return NextResponse.json({
+                    success: true,
+                    magicLink: data.properties?.action_link,
+                    email,
+                    message: 'Link gerado! Copie e envie para o usuário acessar sem precisar de senha.',
+                    expiresIn: '24 horas',
+                })
+            }
+
+            // ── GERAR LINK DE REDEFINIÇÃO DE SENHA
+            case 'reset_password_link': {
+                const { email } = body
+                if (!email) return NextResponse.json({ error: 'Email obrigatório.' }, { status: 400 })
+
+                const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://agente-teste-pi.vercel.app'
+
+                const { data, error } = await supabase.auth.admin.generateLink({
+                    type: 'recovery',
+                    email,
+                    options: { redirectTo: `${siteUrl}/reset-password` }
+                })
+
+                if (error) throw error
+
+                return NextResponse.json({
+                    success: true,
+                    resetLink: data.properties?.action_link,
+                    email,
+                    message: 'Link de redefinição de senha gerado.',
+                })
+            }
+
             default:
                 return NextResponse.json({ error: `Ação desconhecida: ${action}` }, { status: 400 })
         }
