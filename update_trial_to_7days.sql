@@ -3,39 +3,45 @@
 -- Execute no Supabase SQL Editor
 -- ============================================================
 
--- ── 1. Atualizar a função RPC activate_trial no banco
---    (é ela que calcula trial_expires_at quando o usuário clica "Ativar")
+-- ── 1. Dropar a função antiga
+DROP FUNCTION IF EXISTS public.activate_trial(UUID, TEXT, TEXT);
+
+-- ── 2. Recriar com duração de 7 dias
 CREATE OR REPLACE FUNCTION public.activate_trial(
-    p_user_id UUID,
-    p_partner_ref TEXT DEFAULT NULL,
+    p_user_id      UUID,
+    p_partner_ref  TEXT DEFAULT NULL,
     p_activated_by TEXT DEFAULT 'auto'
 )
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $func$
 DECLARE
-    v_profile profiles%ROWTYPE;
-    v_expires_at TIMESTAMPTZ;
-    v_now TIMESTAMPTZ := NOW();
+    v_current_expires_at TIMESTAMPTZ;
+    v_expires_at         TIMESTAMPTZ;
+    v_now                TIMESTAMPTZ;
 BEGIN
-    -- Buscar o perfil
-    SELECT * INTO v_profile FROM profiles WHERE id = p_user_id;
+    v_now := NOW();
+
+    -- Buscar trial_expires_at atual usando atribuição direta (evita ambiguidade)
+    v_current_expires_at := (
+        SELECT trial_expires_at FROM public.profiles WHERE id = p_user_id
+    );
 
     -- Já tem trial ativo?
-    IF v_profile.trial_expires_at IS NOT NULL AND v_profile.trial_expires_at > v_now THEN
+    IF v_current_expires_at IS NOT NULL AND v_current_expires_at > v_now THEN
         RETURN json_build_object(
-            'success', false,
-            'error', 'Trial já está ativo',
-            'expires_at', v_profile.trial_expires_at
+            'success',    false,
+            'error',      'Trial já está ativo',
+            'expires_at', v_current_expires_at
         );
     END IF;
 
-    -- 7 DIAS a partir de agora (168h)
+    -- 7 dias a partir de agora
     v_expires_at := v_now + INTERVAL '7 days';
 
     -- Atualizar profile
-    UPDATE profiles
+    UPDATE public.profiles
     SET
         plan               = 'trial',
         trial_activated_at = v_now,
@@ -45,25 +51,16 @@ BEGIN
     WHERE id = p_user_id;
 
     RETURN json_build_object(
-        'success',      true,
-        'expires_at',   v_expires_at,
-        'hours',        168,
-        'message',      'Trial de 7 dias ativado com sucesso!'
+        'success',    true,
+        'expires_at', v_expires_at,
+        'hours',      168,
+        'message',    'Trial de 7 dias ativado com sucesso!'
     );
 END;
-$$;
+$func$;
 
--- ── 2. Verificar: listar trials ativos com nova duração esperada
-SELECT
-    p.email,
-    p.trial_activated_at,
-    p.trial_expires_at,
-    ROUND(EXTRACT(EPOCH FROM (p.trial_expires_at - p.trial_activated_at)) / 3600) AS horas_total,
-    CASE
-        WHEN ROUND(EXTRACT(EPOCH FROM (p.trial_expires_at - p.trial_activated_at)) / 3600) >= 160 THEN '✅ 7 dias'
-        WHEN ROUND(EXTRACT(EPOCH FROM (p.trial_expires_at - p.trial_activated_at)) / 3600) BETWEEN 70 AND 80 THEN '⚠️ Ainda 72h (antigo)'
-        ELSE '❓ Outro'
-    END AS configuracao
-FROM profiles p
-WHERE p.plan = 'trial' AND p.trial_expires_at > NOW()
-ORDER BY p.trial_expires_at DESC;
+-- ── 3. Confirmar criação
+SELECT proname, prosrc
+FROM pg_proc
+WHERE proname = 'activate_trial'
+LIMIT 1;

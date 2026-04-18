@@ -4,11 +4,16 @@ import { createClient as createServerClient } from '@/utils/supabase/server'
 
 // Service role client — bypassa RLS, pode atualizar qualquer perfil
 function adminSupabase() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!url || !key) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY não configurado no servidor. Acesse as variáveis de ambiente no Railway/Vercel.')
+    }
+
+    return createClient(url, key, {
+        auth: { autoRefreshToken: false, persistSession: false }
+    })
 }
 
 // Verifica se o chamador é admin
@@ -128,8 +133,25 @@ export async function POST(request: NextRequest) {
             case 'force_logout': {
                 if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
 
+                // Valida UUID antes de chamar admin.signOut
+                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                if (!uuidRegex.test(userId)) {
+                    return NextResponse.json({ error: `userId inválido: "${userId}" não é um UUID válido.` }, { status: 400 })
+                }
+
                 const { error } = await supabase.auth.admin.signOut(userId, 'global')
-                if (error) throw error
+
+                if (error) {
+                    // JWT/token inválido significa que o usuário já não tem sessão ativa
+                    if (error.message.includes('invalid JWT') || error.message.includes('malformed')) {
+                        return NextResponse.json({
+                            success: true,
+                            message: 'Usuário já sem sessão ativa (JWT inválido/expirado).',
+                            detail: error.message
+                        })
+                    }
+                    throw error
+                }
 
                 return NextResponse.json({ success: true, message: 'Sessão do usuário encerrada.' })
             }

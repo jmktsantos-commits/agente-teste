@@ -56,12 +56,24 @@ export async function updateSession(request: NextRequest) {
             .single()
 
         // ── PERFIL INEXISTENTE: usuário tem sessão mas foi removido do banco
-        //    → deslogar e redirecionar para login
+        //    → limpar cookies de sessão e redirecionar para login
         if (!profile) {
+            // Tentar signOut via cookie client (melhor esforço)
             await supabase.auth.signOut()
+
             const url = request.nextUrl.clone()
             url.pathname = '/login'
-            return NextResponse.redirect(url)
+            url.searchParams.set('error', 'conta_removida')
+
+            // Criar resposta de redirect e limpar TODOS os cookies de autenticação
+            const redirectResponse = NextResponse.redirect(url)
+            // Limpar cookies do Supabase Auth para garantir que o JWT não seja reutilizado
+            request.cookies.getAll().forEach(cookie => {
+                if (cookie.name.startsWith('sb-') || cookie.name.includes('supabase')) {
+                    redirectResponse.cookies.delete(cookie.name)
+                }
+            })
+            return redirectResponse
         }
 
         // Admins e afiliados: acesso irrestrito
