@@ -92,8 +92,13 @@ function RegisterForm() {
 
             // Se confirmação de email está desabilitada no Supabase, o usuário já está logado
             if (data.session) {
-                // Conta criada e confirmada — aguardar aprovação do admin
-                router.push("/aguardando-aprovacao")
+                // Forçar status = 'pending' e last_seen = null (independente do trigger)
+                await fetch('/api/auth/set-pending', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: data.session.user.id }),
+                })
+                router.push('/aguardando-aprovacao')
                 return
             }
 
