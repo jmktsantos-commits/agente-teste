@@ -5,30 +5,21 @@ import { getUsers, updateUserRole, updateUserStatus, deleteUser } from "@/app/ac
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, MoreHorizontal, Search, Trash, Shield, ShieldOff, Ban, CheckCircle, Eye, Users } from "lucide-react"
+import {
+    Loader2, MoreHorizontal, Search, Trash, Shield, ShieldOff,
+    Ban, CheckCircle, Eye, Users, UserPlus, X, Check
+} from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -37,6 +28,169 @@ function isOnline(lastSeen: string | null): boolean {
     return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
 }
 
+// ── Componente: Formulário de criação de usuário ──────────────────────────────
+function CreateUserForm({ onCreated }: { onCreated: () => void }) {
+    const [form, setForm] = useState({
+        email: '', password: '', fullName: '', plan: 'trial', role: 'user'
+    })
+    const [loading, setLoading] = useState(false)
+    const [toast, setToast] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
+
+    const showToast = (type: 'success' | 'error', msg: string) => {
+        setToast({ type, msg })
+        setTimeout(() => setToast(null), 4000)
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!form.email || !form.password) {
+            showToast('error', 'Email e senha são obrigatórios.')
+            return
+        }
+        if (form.password.length < 6) {
+            showToast('error', 'Senha deve ter no mínimo 6 caracteres.')
+            return
+        }
+
+        setLoading(true)
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'create_user', ...form }),
+            })
+            const data = await res.json()
+            if (!res.ok || !data.success) throw new Error(data.error || 'Erro ao criar usuário')
+
+            showToast('success', `✅ ${data.message}`)
+            setForm({ email: '', password: '', fullName: '', plan: 'trial', role: 'user' })
+            onCreated()
+        } catch (err: unknown) {
+            showToast('error', err instanceof Error ? err.message : 'Erro desconhecido')
+        }
+        setLoading(false)
+    }
+
+    return (
+        <Card className="border-slate-800 bg-slate-900/50">
+            <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                    <UserPlus className="h-4 w-4 text-purple-400" />
+                    Adicionar Usuário Manualmente
+                </CardTitle>
+                <CardDescription>
+                    Cria o login e o perfil do usuário. O email já é confirmado automaticamente.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                {toast && (
+                    <div className={`mb-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium border
+                        ${toast.type === 'success'
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        }`}>
+                        {toast.type === 'success' ? <Check className="h-4 w-4 shrink-0" /> : <X className="h-4 w-4 shrink-0" />}
+                        {toast.msg}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Nome */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Nome completo
+                        </label>
+                        <Input
+                            placeholder="Ex: João Silva"
+                            value={form.fullName}
+                            onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                            className="bg-slate-800/50 border-slate-700"
+                        />
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Email <span className="text-red-400">*</span>
+                        </label>
+                        <Input
+                            type="email"
+                            placeholder="email@exemplo.com"
+                            value={form.email}
+                            onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                            required
+                            className="bg-slate-800/50 border-slate-700"
+                        />
+                    </div>
+
+                    {/* Senha */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Senha <span className="text-red-400">*</span>
+                        </label>
+                        <Input
+                            type="password"
+                            placeholder="Mínimo 6 caracteres"
+                            value={form.password}
+                            onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                            required
+                            className="bg-slate-800/50 border-slate-700"
+                        />
+                    </div>
+
+                    {/* Plano */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Plano / Acesso
+                        </label>
+                        <select
+                            value={form.plan}
+                            onChange={e => setForm(p => ({ ...p, plan: e.target.value }))}
+                            className="w-full rounded-md border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
+                        >
+                            <option value="trial">🕐 Trial (72h)</option>
+                            <option value="pro">⭐ Pro (acesso completo)</option>
+                            <option value="vip">💎 VIP</option>
+                            <option value="starter">🚀 Starter</option>
+                        </select>
+                    </div>
+
+                    {/* Role */}
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            Função
+                        </label>
+                        <select
+                            value={form.role}
+                            onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
+                            className="w-full rounded-md border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
+                        >
+                            <option value="user">👤 Usuário comum</option>
+                            <option value="affiliate">🤝 Afiliado</option>
+                            <option value="admin">🛡️ Admin</option>
+                        </select>
+                    </div>
+
+                    {/* Botão */}
+                    <div className="flex items-end">
+                        <Button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold gap-2"
+                        >
+                            {loading
+                                ? <><Loader2 className="h-4 w-4 animate-spin" /> Criando...</>
+                                : <><UserPlus className="h-4 w-4" /> Criar Usuário</>
+                            }
+                        </Button>
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
+    )
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -74,10 +228,11 @@ export default function UsersPage() {
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Gerenciar Usuários</h1>
-                    <p className="text-muted-foreground mt-1">Visualize e gerencie todos os usuários cadastrados.</p>
+                    <p className="text-muted-foreground mt-1">Visualize, crie e gerencie todos os usuários cadastrados.</p>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                     <div className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 bg-card">
@@ -94,6 +249,10 @@ export default function UsersPage() {
                 </div>
             </div>
 
+            {/* ── SEÇÃO: Adicionar Usuário ── */}
+            <CreateUserForm onCreated={loadUsers} />
+
+            {/* Busca */}
             <div className="flex items-center space-x-2">
                 <div className="relative w-full max-w-sm">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -106,6 +265,7 @@ export default function UsersPage() {
                 </div>
             </div>
 
+            {/* Tabela */}
             <div className="rounded-lg border bg-card overflow-hidden">
                 <Table>
                     <TableHeader>
@@ -163,16 +323,10 @@ export default function UsersPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            {user.role === 'admin' && (
-                                                <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Admin</Badge>
-                                            )}
-                                            {user.role === 'affiliate' && (
-                                                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Afiliado</Badge>
-                                            )}
+                                            {user.role === 'admin' && <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Admin</Badge>}
+                                            {user.role === 'affiliate' && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Afiliado</Badge>}
                                             {user.role === 'user' && user.btag && (
-                                                <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20" title={`Veio pelo afiliado: ${user.btag}`}>
-                                                    Lead Afiliado
-                                                </Badge>
+                                                <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20" title={`Veio pelo afiliado: ${user.btag}`}>Lead Afiliado</Badge>
                                             )}
                                             {user.role === 'user' && !user.btag && (
                                                 <Badge className="bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Direto</Badge>
@@ -270,15 +424,15 @@ export default function UsersPage() {
                                     <p className="text-sm font-semibold mt-1">
                                         {selectedUser.role === 'admin' && '🛡️ Admin'}
                                         {selectedUser.role === 'affiliate' && '🤝 Afiliado'}
-                                        {selectedUser.role === 'user' && selectedUser.btag && (
-                                            <span className="text-orange-500">🔗 Lead Afiliado</span>
-                                        )}
+                                        {selectedUser.role === 'user' && selectedUser.btag && <span className="text-orange-500">🔗 Lead Afiliado</span>}
                                         {selectedUser.role === 'user' && !selectedUser.btag && '👤 Direto'}
                                     </p>
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Cadastro</p>
-                                    <p className="text-sm font-semibold mt-1">{selectedUser.created_at ? format(new Date(selectedUser.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}</p>
+                                    <p className="text-sm font-semibold mt-1">
+                                        {selectedUser.created_at ? format(new Date(selectedUser.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}
+                                    </p>
                                 </div>
                                 <div className="rounded-lg border p-3">
                                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Último Acesso</p>
