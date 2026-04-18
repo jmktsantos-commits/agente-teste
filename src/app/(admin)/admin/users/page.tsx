@@ -35,7 +35,12 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
     })
     const [loading, setLoading] = useState(false)
     const [toast, setToast] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
-    const [createdUser, setCreatedUser] = useState<{ email: string; password: string; magicLink?: string } | null>(null)
+    const [createdUser, setCreatedUser] = useState<{
+        email: string
+        password: string
+        magicLink?: string
+        magicLinkError?: string
+    } | null>(null)
     const [linkLoading, setLinkLoading] = useState(false)
     const [copied, setCopied] = useState(false)
 
@@ -67,21 +72,35 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
 
             // Gerar link mágico automaticamente
             setLinkLoading(true)
-            const linkRes = await fetch('/api/admin/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'generate_magic_link', email: form.email }),
-            })
-            const linkData = await linkRes.json()
+            let magicLink: string | undefined
+            let magicLinkError: string | undefined
+            try {
+                const linkRes = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'generate_magic_link', email: form.email }),
+                })
+                const linkData = await linkRes.json()
+                if (linkData.magicLink) {
+                    magicLink = linkData.magicLink
+                } else {
+                    magicLinkError = linkData.error || 'Não foi possível gerar o link. Use o email + senha abaixo.'
+                }
+            } catch {
+                magicLinkError = 'Erro ao gerar link. Use o email + senha para acessar.'
+            } finally {
+                setLinkLoading(false)
+            }
 
+            // Sempre exibe o painel com as credenciais
             setCreatedUser({
                 email: form.email,
                 password: form.password,
-                magicLink: linkData.magicLink,
+                magicLink,
+                magicLinkError,
             })
-            setLinkLoading(false)
 
-            showToast('success', `✅ Usuário ${form.email} criado! Compartilhe as credenciais abaixo.`)
+            showToast('success', `✅ Usuário ${form.email} criado! As credenciais estao exibidas abaixo.`)
             setForm({ email: '', password: '', fullName: '', plan: 'trial', role: 'user' })
             onCreated()
         } catch (err: unknown) {
@@ -144,11 +163,11 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
                                 <Loader2 className="h-3 w-3 animate-spin" /> Gerando link de acesso...
                             </div>
                         )}
-                        {createdUser.magicLink && (
+                        {!linkLoading && createdUser.magicLink && (
                             <div className="space-y-1.5">
                                 <p className="text-xs text-muted-foreground">🔗 Link de acesso direto (válido por 24h):</p>
                                 <div className="flex items-center gap-2">
-                                    <p className="text-xs font-mono text-purple-300 bg-black/30 rounded px-2 py-1.5 flex-1 truncate">
+                                    <p className="text-xs font-mono text-purple-300 bg-black/30 rounded px-2 py-1.5 flex-1 break-all">
                                         {createdUser.magicLink}
                                     </p>
                                     <Button
@@ -160,7 +179,13 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
                                         {copied ? <Check className="h-3 w-3 text-emerald-400" /> : 'Copiar'}
                                     </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground">💡 Envie este link pelo WhatsApp — o usuário clica e entra direto sem precisar de senha.</p>
+                                <p className="text-xs text-muted-foreground">💡 Envie via WhatsApp — o usuário clica e entra direto, sem digitar senha.</p>
+                            </div>
+                        )}
+                        {!linkLoading && createdUser.magicLinkError && (
+                            <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-3 py-2">
+                                <p className="text-xs text-yellow-400">⚠️ {createdUser.magicLinkError}</p>
+                                <p className="text-xs text-muted-foreground mt-1">Envie o email e a senha acima pelo WhatsApp.</p>
                             </div>
                         )}
                         <Button

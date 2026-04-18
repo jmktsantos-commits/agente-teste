@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
                         plan: plan || 'trial',
                         role: role || 'user',
                         status: 'active',
+                        last_seen: null, // garante que não aparecerã como online
                         trial_activated_at: (plan === 'trial') ? now.toISOString() : null,
                         trial_activated_by: 'admin',
                         trial_expires_at: trialExpiresAt,
