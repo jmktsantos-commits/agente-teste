@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Paths que nunca redirecionam para login (acesso público)
-const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial', '/trial-expirado']
+const AUTH_FREE_PATHS = ['/login', '/registro', '/auth', '/reset-password', '/ativar-trial', '/trial-expirado', '/aguardando-aprovacao']
 const PUBLIC_EXACT_PATHS = ['/'] // Landing page — acesso público sem login
 
 // Planos pagos — NUNCA bloqueados mesmo com trial expirado
@@ -51,7 +51,7 @@ export async function updateSession(request: NextRequest) {
     if (user && !isAuthFreePath) {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('plan, trial_expires_at, role')
+            .select('plan, trial_expires_at, role, status')
             .eq('id', user.id)
             .single()
 
@@ -79,6 +79,13 @@ export async function updateSession(request: NextRequest) {
         // Admins e afiliados: acesso irrestrito
         const isAdmin = profile.role === 'admin' || profile.role === 'affiliate'
         if (isAdmin) return response
+
+        // Conta pendente de aprovação → redirecionar para tela de espera
+        if (profile.status === 'pending') {
+            const url = request.nextUrl.clone()
+            url.pathname = '/aguardando-aprovacao'
+            return NextResponse.redirect(url)
+        }
 
         // Planos pagos: acesso irrestrito
         const isPaid = profile.plan && PAID_PLANS.includes(profile.plan)

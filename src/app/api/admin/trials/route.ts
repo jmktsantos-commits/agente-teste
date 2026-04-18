@@ -111,6 +111,30 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: true, message: 'Usuário excluído.' })
             }
 
+            // ── APROVAR USUÁRIO PENDENTE (status pending → active + trial 7 dias)
+            case 'approve_user': {
+                if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
+
+                const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                        status: 'active',
+                        plan: 'trial',
+                        trial_expires_at: expiresAt,
+                        trial_activated_at: new Date().toISOString(),
+                        trial_activated_by: 'admin',
+                    })
+                    .eq('id', userId)
+
+                if (error) throw error
+                return NextResponse.json({
+                    success: true,
+                    expires_at: expiresAt,
+                    message: 'Usuário aprovado. Trial de 7 dias ativado.'
+                })
+            }
+
             // ── ATIVAR TRIAL individual (+7 dias a partir de agora)
             case 'activate': {
                 if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })

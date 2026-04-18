@@ -70,9 +70,7 @@ function RegisterForm() {
         }
 
         try {
-            const redirectTo = isTrial
-                ? `${window.location.origin}/ativar-trial?auto=true&ref=${trialRef || 'GENERIC'}`
-                : `${window.location.origin}/auth/callback`
+            const redirectTo = `${window.location.origin}/aguardando-aprovacao`
 
             const { data, error } = await supabase.auth.signUp({
                 email,
@@ -94,19 +92,8 @@ function RegisterForm() {
 
             // Se confirmação de email está desabilitada no Supabase, o usuário já está logado
             if (data.session) {
-                // Ativar trial imediatamente
-                if (isTrial) {
-                    await fetch("/api/trial/activate", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ partner_ref: trialRef || "GENERIC" })
-                    })
-                    localStorage.removeItem("activate_trial")
-                    localStorage.removeItem("trial_ref")
-                    router.push("/dashboard")
-                    return
-                }
-                router.push("/dashboard")
+                // Conta criada e confirmada — aguardar aprovação do admin
+                router.push("/aguardando-aprovacao")
                 return
             }
 
@@ -141,18 +128,17 @@ function RegisterForm() {
                 </CardHeader>
                 <CardContent>
                     {success ? (
-                        <div className="text-center space-y-4">
-                            <div className="text-green-500 font-medium">
-                                Cadastro realizado com sucesso!
+                        <div className="text-center space-y-4 py-4">
+                            <div className="text-5xl">⏳</div>
+                            <div className="text-emerald-500 font-semibold text-lg">
+                                Cadastro realizado!
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                {isTrial
-                                    ? "Verifique seu email e clique no link para ativar sua conta e o trial gratuito de 7 dias!"
-                                    : "Verifique seu email para confirmar sua conta."
-                                }
+                                Sua conta foi criada. Aguarde a aprovação do administrador para acessar a plataforma.
+                                Você receberá um aviso assim que for aprovado.
                             </p>
                             <Button asChild className="w-full">
-                                <Link href="/login">Ir para Login</Link>
+                                <Link href="/login">Voltar ao Login</Link>
                             </Button>
                         </div>
                     ) : (

@@ -14,9 +14,18 @@ interface TrialUser {
     full_name: string
     plan: string
     role: string
+    status: string | null
     trial_expires_at: string | null
     trial_activated_at: string | null
     partner_ref: string | null
+}
+
+interface PendingUser {
+    id: string
+    email: string
+    full_name: string | null
+    created_at: string
+    status: string
 }
 
 export default function TrialsAdminPage() {
@@ -27,11 +36,12 @@ export default function TrialsAdminPage() {
     const [grantRef, setGrantRef] = useState("")
     const [grantLoading, setGrantLoading] = useState(false)
     const [grantMessage, setGrantMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null)
-    const [filter, setFilter] = useState<"all" | "active" | "expired">("all")
+    const [filter, setFilter] = useState<"all" | "active" | "expired" | "pending">("all")
     const [search, setSearch] = useState("")
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [bulkLoading, setBulkLoading] = useState(false)
     const [toast, setToast] = useState<string | null>(null)
+    const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
 
     const showToast = (msg: string) => {
         setToast(msg)
@@ -47,13 +57,22 @@ export default function TrialsAdminPage() {
         const supabase = createClient()
         const { data: users } = await supabase
             .from("profiles")
-            .select("id, email, full_name, plan, role, trial_expires_at, trial_activated_at, partner_ref")
+            .select("id, email, full_name, plan, role, status, trial_expires_at, trial_activated_at, partner_ref")
             .or("trial_expires_at.not.is.null,plan.eq.trial")
             .not("role", "in", '("admin","affiliate")')
             .order("trial_activated_at", { ascending: false })
             .limit(200)
 
+        // Buscar pendentes
+        const { data: pending } = await supabase
+            .from("profiles")
+            .select("id, email, full_name, created_at, status")
+            .eq("status", "pending")
+            .not("role", "in", '("admin","affiliate")')
+            .order("created_at", { ascending: false })
+
         setTrialUsers(users || [])
+        setPendingUsers(pending || [])
         setLoading(false)
         setRefreshing(false)
     }, [])
@@ -70,6 +89,20 @@ export default function TrialsAdminPage() {
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Erro desconhecido")
         return data
+    }
+
+    // ── Aprovar usuário pendente
+    const handleApprove = async (userId: string, email: string) => {
+        if (!confirm(`Aprovar ${email} e ativar trial de 7 dias?`)) return
+        setActionLoading(userId)
+        try {
+            await callAdminAction("approve_user", userId)
+            showToast(`✅ ${email} aprovado! Trial de 7 dias ativado.`)
+            await fetchData(true)
+        } catch (e: unknown) {
+            showToast(`❌ Erro: ${e instanceof Error ? e.message : e}`)
+        }
+        setActionLoading(null)
     }
 
     // ── Ativar trial via email
@@ -300,6 +333,7 @@ export default function TrialsAdminPage() {
                     { label: "Ativos", value: activeCount, color: "text-emerald-400", icon: UserCheck },
                     { label: "Expirados", value: expiredCount, color: "text-red-400", icon: UserX },
                     { label: "Dados errados (⚠️ ativado > 7 dias)", value: overdueCount, color: overdueCount > 0 ? "text-orange-400" : "text-muted-foreground", icon: ShieldAlert },
+                    { label: "⏳ Aguardando Aprovação", value: pendingUsers.length, color: pendingUsers.length > 0 ? "text-yellow-400" : "text-muted-foreground", icon: Clock },
                 ].map((s, i) => (
                     <Card key={i} className="border-slate-800">
                         <CardContent className="pt-5 pb-4">
@@ -367,16 +401,23 @@ export default function TrialsAdminPage() {
                             </div>
                             {/* Filter tabs */}
                             <div className="flex gap-1">
-                                {(["all", "active", "expired"] as const).map(f => (
+                                {(["all", "active", "expired", "pending"] as const).map(f => (
                                     <button
                                         key={f}
                                         onClick={() => setFilter(f)}
                                         className={`text-xs px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap ${filter === f
-                                            ? "bg-purple-600 text-white border-purple-600"
+                                            ? f === "pending" ? "bg-yellow-500 text-black border-yellow-500" : "bg-purple-600 text-white border-purple-600"
                                             : "border-slate-700 text-muted-foreground hover:text-foreground hover:border-slate-500"
                                         }`}
                                     >
-                                        {f === "all" ? `Todos (${trialUsers.length})` : f === "active" ? `Ativos (${activeCount})` : `Expirados (${expiredCount})`}
+                                        {f === "all" ? `Todos (${trialUsers.length})`
+                                            : f === "active" ? `Ativos (${activeCount})`
+                                            : f === "expired" ? `Expirados (${expiredCount})`
+                                            : <span className="flex items-center gap-1">
+                                                {pendingUsers.length > 0 && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />}
+                                                Pendentes ({pendingUsers.length})
+                                              </span>
+                                        }
                                     </button>
                                 ))}
                             </div>
@@ -388,6 +429,63 @@ export default function TrialsAdminPage() {
                         <div className="flex items-center justify-center py-16">
                             <RefreshCw className="h-6 w-6 text-muted-foreground animate-spin" />
                         </div>
+                    ) : filter === "pending" ? (
+                        // ── TABELA DE PENDENTES
+                        pendingUsers.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
+                                <UserCheck className="h-8 w-8 opacity-30" />
+                                <p className="text-sm">Nenhum cadastro pendente! 🎉</p>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-800 text-muted-foreground text-xs uppercase tracking-wider">
+                                            <th className="text-left px-6 py-3">Usuário</th>
+                                            <th className="text-left px-4 py-3">Cadastrado em</th>
+                                            <th className="text-right px-6 py-3">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800/60">
+                                        {pendingUsers.map(u => (
+                                            <tr key={u.id} className="transition-colors hover:bg-yellow-500/5">
+                                                <td className="px-6 py-3">
+                                                    <div className="font-medium text-white">{u.full_name || "Sem nome"}</div>
+                                                    <div className="text-xs text-muted-foreground">{u.email}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-xs text-muted-foreground">
+                                                    {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                                </td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1"
+                                                            onClick={() => handleApprove(u.id, u.email)}
+                                                            disabled={actionLoading === u.id}
+                                                        >
+                                                            {actionLoading === u.id
+                                                                ? <><RefreshCw className="h-3 w-3 animate-spin" /> Aprovando...</>
+                                                                : <><UserCheck className="h-3 w-3" /> Aprovar</>
+                                                            }
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                                            onClick={() => handleDelete(u.id, u.email)}
+                                                            disabled={actionLoading === u.id}
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )
                     ) : filteredUsers.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
                             <Users className="h-8 w-8 opacity-30" />
