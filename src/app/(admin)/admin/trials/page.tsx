@@ -6,7 +6,54 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, RefreshCw, UserCheck, UserX, Trash2, ShieldAlert, Clock, Users, LogOut } from "lucide-react"
+import { Search, RefreshCw, UserCheck, UserX, Trash2, ShieldAlert, Clock, Users, LogOut, Copy, Check, Link2 } from "lucide-react"
+
+
+// ── Componente: Link de Cadastro para Trial ─────────────────────────────────
+function RegistrationLinkCard() {
+    const [copied, setCopied] = useState(false)
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://agente-teste-pi.vercel.app'
+    const registrationUrl = `${baseUrl}/registro`
+
+    const copyLink = () => {
+        navigator.clipboard.writeText(registrationUrl)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2500)
+    }
+
+    const shareWhatsApp = () => {
+        const msg = encodeURIComponent(`🎰 Acesso Gratuito - Aviator Pro\n\nOlá! Você foi convidado para testar nossa plataforma gratuitamente por 7 dias.\n\n👉 Cadastre-se aqui: ${registrationUrl}\n\nApós o cadastro, o acesso será liberado em breve!`)
+        window.open(`https://wa.me/?text=${msg}`, '_blank')
+    }
+
+    return (
+        <Card className="border-purple-500/30 bg-gradient-to-r from-purple-500/5 to-slate-900/50">
+            <CardContent className="pt-5 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                            <Link2 className="h-4 w-4 text-purple-400" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold text-white">🔗 Link de Cadastro — Free Trial 7 Dias</p>
+                            <p className="text-xs text-purple-300 font-mono mt-0.5 break-all">{registrationUrl}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Envie este link para o usuário se cadastrar. Após o cadastro, você aprova o acesso aqui no painel.</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                        <Button size="sm" variant="outline" className="gap-2 text-xs border-purple-500/40 hover:bg-purple-500/10" onClick={copyLink}>
+                            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                            {copied ? 'Copiado!' : 'Copiar link'}
+                        </Button>
+                        <Button size="sm" className="gap-2 text-xs bg-emerald-600 hover:bg-emerald-500 text-white" onClick={shareWhatsApp}>
+                            📱 WhatsApp
+                        </Button>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 interface TrialUser {
     id: string
@@ -346,6 +393,9 @@ export default function TrialsAdminPage() {
                     </Card>
                 ))}
             </div>
+
+            {/* 🔗 Link de Cadastro */}
+            <RegistrationLinkCard />
 
             {/* Ativar Trial Manualmente */}
             <Card className="border-slate-800">
