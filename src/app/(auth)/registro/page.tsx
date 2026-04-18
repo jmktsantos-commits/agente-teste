@@ -124,7 +124,7 @@ function RegisterForm() {
                 {isTrial && (
                     <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm text-emerald-600">
                         <Gift className="w-4 h-4" />
-                        🎁 Você terá 72h de acesso gratuito após o cadastro!
+                        🎁 Você terá 7 dias de acesso gratuito após o cadastro!
                     </div>
                 )}
                 {btag && !isTrial && (
@@ -147,7 +147,7 @@ function RegisterForm() {
                             </div>
                             <p className="text-sm text-muted-foreground">
                                 {isTrial
-                                    ? "Verifique seu email e clique no link para ativar sua conta e o trial gratuito de 72h!"
+                                    ? "Verifique seu email e clique no link para ativar sua conta e o trial gratuito de 7 dias!"
                                     : "Verifique seu email para confirmar sua conta."
                                 }
                             </p>

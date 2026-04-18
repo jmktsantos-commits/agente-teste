@@ -106,10 +106,10 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: true, message: 'Usuário excluído.' })
             }
 
-            // ── ATIVAR TRIAL individual (+72h a partir de agora)
+            // ── ATIVAR TRIAL individual (+7 dias a partir de agora)
             case 'activate': {
                 if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
-                const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString()
+                const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
                 const { error } = await supabase
                     .from('profiles')
                     .update({
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
                     .eq('id', userId)
 
                 if (error) throw error
-                return NextResponse.json({ success: true, expires_at: expiresAt, message: 'Trial ativado por 72h.' })
+                return NextResponse.json({ success: true, expires_at: expiresAt, message: 'Trial ativado por 7 dias.' })
             }
 
             // ── FORÇAR LOGOUT SEM BLOQUEAR (apenas encerrar sessão)
@@ -134,9 +134,9 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ success: true, message: 'Sessão do usuário encerrada.' })
             }
 
-            // ── BLOQUEAR TODOS com trial_activated_at > 72h atrás
+            // ── BLOQUEAR TODOS com trial_activated_at > 7 dias atrás
             case 'block_all_overdue': {
-                const cutoff = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString()
+                const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
                 // Buscar IDs dos afetados para invalidar sessões
                 const { data: affected } = await supabase

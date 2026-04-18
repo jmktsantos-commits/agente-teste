@@ -174,9 +174,9 @@ export default function TrialsAdminPage() {
         setBulkLoading(false)
     }
 
-    // ── Corrigir ativados há mais de 72h que ainda aparecem como ativos
+    // ── Corrigir ativados há mais de 7 dias que ainda aparecem como ativos
     const handleBlockAllOverdue = async () => {
-        if (!confirm("Bloquear todos os usuários cujo trial foi ativado há mais de 72h? Isso corrige quem foi re-ativado por engano.")) return
+        if (!confirm("Bloquear todos os usuários cujo trial foi ativado há mais de 7 dias? Isso corrige quem foi re-ativado por engano.")) return
         setBulkLoading(true)
         try {
             const res = await fetch('/api/admin/trials', {
@@ -185,7 +185,7 @@ export default function TrialsAdminPage() {
                 body: JSON.stringify({ action: 'block_all_overdue' }),
             })
             const data = await res.json()
-            showToast(`⛔ ${data.blocked ?? 0} usuários com trial vencido (> 72h desde ativação) foram bloqueados.`)
+            showToast(`⛔ ${data.blocked ?? 0} usuários com trial vencido (> 7 dias desde ativação) foram bloqueados.`)
             await fetchData(true)
         } catch (e: unknown) {
             alert(`Erro: ${e instanceof Error ? e.message : e}`)
@@ -211,12 +211,12 @@ export default function TrialsAdminPage() {
 
     const activeCount = trialUsers.filter(u => u.trial_expires_at && new Date(u.trial_expires_at) > now).length
     const expiredCount = trialUsers.filter(u => !u.trial_expires_at || new Date(u.trial_expires_at) <= now).length
-    // Ativados há mais de 72h mas ainda aparecem com trial_expires_at > now (dados errados)
+    // Ativados há mais de 7 dias mas ainda aparecem com trial_expires_at > now (dados errados)
     const overdueCount = trialUsers.filter(u => {
         if (!u.trial_activated_at) return false
-        const activatedMoreThan72hAgo = new Date(u.trial_activated_at).getTime() < now.getTime() - 72 * 3600 * 1000
+        const activatedMoreThan7DaysAgo = new Date(u.trial_activated_at).getTime() < now.getTime() - 7 * 24 * 3600 * 1000
         const appearsActive = u.trial_expires_at && new Date(u.trial_expires_at) > now
-        return activatedMoreThan72hAgo && appearsActive
+        return activatedMoreThan7DaysAgo && appearsActive
     }).length
 
     const getStatusBadge = (u: TrialUser) => {
@@ -255,7 +255,7 @@ export default function TrialsAdminPage() {
             <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Gestão de Trials</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">Gerencie os acessos gratuitos de 72h.</p>
+                    <p className="text-muted-foreground mt-1 text-sm">Gerencie os acessos gratuitos de 7 dias.</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap justify-end">
                     <Button
@@ -299,7 +299,7 @@ export default function TrialsAdminPage() {
                     { label: "Total", value: trialUsers.length, color: "text-blue-400", icon: Users },
                     { label: "Ativos", value: activeCount, color: "text-emerald-400", icon: UserCheck },
                     { label: "Expirados", value: expiredCount, color: "text-red-400", icon: UserX },
-                    { label: "Dados errados (⚠️ ativado > 72h)", value: overdueCount, color: overdueCount > 0 ? "text-orange-400" : "text-muted-foreground", icon: ShieldAlert },
+                    { label: "Dados errados (⚠️ ativado > 7 dias)", value: overdueCount, color: overdueCount > 0 ? "text-orange-400" : "text-muted-foreground", icon: ShieldAlert },
                 ].map((s, i) => (
                     <Card key={i} className="border-slate-800">
                         <CardContent className="pt-5 pb-4">
@@ -317,7 +317,7 @@ export default function TrialsAdminPage() {
             <Card className="border-slate-800">
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base">🎁 Ativar Trial Manualmente</CardTitle>
-                    <CardDescription>Dê acesso gratuito de 72h a um usuário pelo email.</CardDescription>
+                    <CardDescription>Dê acesso gratuito de 7 dias a um usuário pelo email.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row gap-3">

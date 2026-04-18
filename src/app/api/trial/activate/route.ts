@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             expires_at: data.expires_at,
-            hours: 72,
-            message: 'Trial de 72h ativado com sucesso!'
+            hours: 168,
+            message: 'Trial de 7 dias ativado com sucesso!'
         })
     } catch (err) {
         console.error('[trial/activate] Unexpected error:', err)

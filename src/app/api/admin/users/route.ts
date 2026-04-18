@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
                 // 2. Calcular trial_expires_at se plano for trial
                 const now = new Date()
                 const trialExpiresAt = (plan === 'trial')
-                    ? new Date(now.getTime() + 72 * 60 * 60 * 1000).toISOString()
+                    ? new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
                     : null
 
                 // 3. Criar/atualizar profile

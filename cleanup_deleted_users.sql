@@ -28,7 +28,29 @@ DELETE FROM public.profiles
 WHERE id NOT IN (SELECT id FROM auth.users);
 
 -- ── 4. LIMPEZA: deletar auth.users que não têm profile
---    (usuários que você removeu do profiles mas o auth record ficou)
+--    Ordem correta para respeitar as foreign keys:
+--    crm_leads → affiliates → auth.users
+
+-- 4a. Remover referência em crm_leads para os afiliados que serão deletados
+UPDATE public.crm_leads
+SET affiliate_id = NULL
+WHERE affiliate_id IN (
+    SELECT au.id
+    FROM auth.users au
+    LEFT JOIN public.profiles p ON p.id = au.id
+    WHERE p.id IS NULL
+);
+
+-- 4b. Deletar registros na tabela affiliates vinculados aos usuários sem profile
+DELETE FROM public.affiliates
+WHERE id IN (
+    SELECT au.id
+    FROM auth.users au
+    LEFT JOIN public.profiles p ON p.id = au.id
+    WHERE p.id IS NULL
+);
+
+-- 4c. Agora sim: deletar os auth.users sem profile
 --    ⚠️ Isso impede que eles façam login novamente.
 DELETE FROM auth.users
 WHERE id NOT IN (SELECT id FROM public.profiles);

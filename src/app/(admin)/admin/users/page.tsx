@@ -148,7 +148,7 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
                             onChange={e => setForm(p => ({ ...p, plan: e.target.value }))}
                             className="w-full rounded-md border border-slate-700 bg-slate-800/50 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-purple-500"
                         >
-                            <option value="trial">🕐 Trial (72h)</option>
+                            <option value="trial">🕐 Trial (7 dias)</option>
                             <option value="pro">⭐ Pro (acesso completo)</option>
                             <option value="vip">💎 VIP</option>
                             <option value="starter">🚀 Starter</option>
