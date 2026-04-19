@@ -96,50 +96,43 @@ export default function TrialsAdminPage() {
         setTimeout(() => setToast(null), 3500)
     }
 
-    // ── Fetch: busca TODOS que tiveram trial (trial_expires_at não nulo)
-    //    + plano 'trial' mesmo sem data
+    // ── Fetch: busca usuários trial e pendentes ──────────────────────────────
     const fetchData = useCallback(async (silent = false) => {
         if (!silent) setLoading(true)
         else setRefreshing(true)
 
         const supabase = createClient()
+
+        // Buscar quem tem trial ativado
         const { data: users } = await supabase
             .from("profiles")
             .select("id, email, full_name, plan, role, status, trial_expires_at, trial_activated_at, partner_ref")
-            .or("trial_expires_at.not.is.null,plan.eq.trial")
+            .not("trial_expires_at", "is", null)
             .not("role", "in", '("admin","affiliate")')
             .order("trial_activated_at", { ascending: false })
             .limit(200)
 
-        // ── Busca pendentes: 2 queries simples + merge ──────────────────────
-        // 1) status = 'pending' explícito
-        const { data: byStatus } = await supabase
+        // ── Busca pendentes: TODOS os não-admin sem trial ativo ──────────────
+        // Esta query intencionalmente ampla captura qualquer cadastro novo
+        // independente do que o trigger setou em plan/status
+        const { data: candidatos } = await supabase
             .from("profiles")
-            .select("id, email, full_name, created_at, status")
-            .eq("status", "pending")
-            .not("role", "in", '("admin","affiliate")')
-            .order("created_at", { ascending: false })
-
-        // 2) plan='trial' SEM trial ativado (trigger criou com status='active')
-        const { data: byPlan } = await supabase
-            .from("profiles")
-            .select("id, email, full_name, created_at, status")
-            .eq("plan", "trial")
+            .select("id, email, full_name, created_at, status, plan")
             .is("trial_expires_at", null)
             .not("role", "in", '("admin","affiliate")')
             .order("created_at", { ascending: false })
+            .limit(500)
 
-        // Merge + deduplicar
-        const seen = new Set<string>()
-        const allPending: PendingUser[] = []
-        for (const u of [...(byStatus || []), ...(byPlan || [])]) {
-            if (!seen.has(u.id)) {
-                seen.add(u.id)
-                allPending.push({ ...u, id_1para1: null })
-            }
-        }
+        const allPending: PendingUser[] = (candidatos || []).map(u => ({
+            id: u.id,
+            email: u.email,
+            full_name: u.full_name,
+            created_at: u.created_at,
+            status: u.status,
+            id_1para1: null,
+        }))
 
-        // Tentar buscar id_1para1 (pode não existir se SQL não foi rodado)
+        // Tentar buscar id_1para1 (pode não existir se SQL ainda não foi rodado)
         if (allPending.length > 0) {
             try {
                 const { data: extras } = await supabase
@@ -153,11 +146,8 @@ export default function TrialsAdminPage() {
             } catch { /* coluna ainda não existe — ignora */ }
         }
 
-        // Excluir quem já tem trial aprovado/ativo
-        const activeIds = new Set((users || []).filter(u => u.trial_expires_at).map(u => u.id))
-
         setTrialUsers(users || [])
-        setPendingUsers(allPending.filter(u => !activeIds.has(u.id)))
+        setPendingUsers(allPending)
         setLoading(false)
         setRefreshing(false)
     }, [])
