@@ -110,16 +110,18 @@ export default function TrialsAdminPage() {
             .order("trial_activated_at", { ascending: false })
             .limit(200)
 
-        // Buscar pendentes
+        // Buscar pendentes = status 'pending' OU plan='trial' sem trial ativado (trigger não atualizado)
         const { data: pending } = await supabase
             .from("profiles")
             .select("id, email, full_name, created_at, status")
-            .eq("status", "pending")
+            .or("status.eq.pending,and(plan.eq.trial,trial_expires_at.is.null)")
             .not("role", "in", '("admin","affiliate")')
             .order("created_at", { ascending: false })
 
         setTrialUsers(users || [])
-        setPendingUsers(pending || [])
+        // Desduplicar: excluir da lista de pendentes quem já tem trial ativo
+        const activeTrialIds = new Set((users || []).filter(u => u.trial_expires_at).map(u => u.id))
+        setPendingUsers((pending || []).filter(u => !activeTrialIds.has(u.id)))
         setLoading(false)
         setRefreshing(false)
     }, [])
