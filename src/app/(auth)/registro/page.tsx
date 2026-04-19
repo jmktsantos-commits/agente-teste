@@ -156,7 +156,7 @@ function RegisterForm() {
                         </div>
                     </div>
                     <span className="shrink-0 text-xs font-bold text-white bg-purple-600 group-hover:bg-purple-500 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap">
-                        Cadastrar →
+                        1PARA1 BET
                     </span>
                 </a>
 
