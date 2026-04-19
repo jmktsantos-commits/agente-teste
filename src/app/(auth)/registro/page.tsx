@@ -137,6 +137,29 @@ function RegisterForm() {
                         Você foi indicado por um afiliado! 🎉
                     </div>
                 )}
+                {/* Banner 1PARA1 */}
+                <a
+                    href="https://1pra1.bet.br/Jean"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-600/20 to-violet-600/10 px-4 py-3 text-sm transition-all hover:border-purple-400/60 hover:bg-purple-600/25 group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-2xl">🎰</span>
+                        <div>
+                            <p className="font-semibold text-purple-200 leading-tight">
+                                Ainda não tem cadastro na 1PARA1?
+                            </p>
+                            <p className="text-xs text-purple-300/80 mt-0.5">
+                                Cadastre-se agora e pegue seu <strong className="text-purple-200">ID de Acesso</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <span className="shrink-0 text-xs font-bold text-white bg-purple-600 group-hover:bg-purple-500 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap">
+                        Cadastrar →
+                    </span>
+                </a>
+
                 <CardHeader className="space-y-1">
                     <CardTitle className="text-2xl font-bold">Criar conta</CardTitle>
                     <CardDescription>
