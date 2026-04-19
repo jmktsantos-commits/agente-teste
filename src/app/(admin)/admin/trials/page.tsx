@@ -425,6 +425,82 @@ export default function TrialsAdminPage() {
             {/* 🔗 Link de Cadastro */}
             <RegistrationLinkCard />
 
+            {/* ⏳ SEÇÃO DE PENDENTES — sempre visível quando há registros aguardando */}
+            {pendingUsers.length > 0 && (
+                <Card className="border-yellow-500/40 bg-yellow-500/5">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
+                                <CardTitle className="text-base text-yellow-300">
+                                    ⏳ Aguardando Aprovação — {pendingUsers.length} cadastro{pendingUsers.length !== 1 ? 's' : ''}
+                                </CardTitle>
+                            </div>
+                            <CardDescription className="text-xs text-yellow-500/70">
+                                Aprove para ativar o trial de 7 dias
+                            </CardDescription>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b border-yellow-500/20 text-yellow-500/60 text-xs uppercase tracking-wider">
+                                        <th className="text-left px-6 py-3">Usuário</th>
+                                        <th className="text-left px-4 py-3">ID 1PARA1</th>
+                                        <th className="text-left px-4 py-3">Cadastrado em</th>
+                                        <th className="text-right px-6 py-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-yellow-500/10">
+                                    {pendingUsers.map(u => (
+                                        <tr key={u.id} className="transition-colors hover:bg-yellow-500/5">
+                                            <td className="px-6 py-3">
+                                                <div className="font-medium text-white">{u.full_name || "Sem nome"}</div>
+                                                <div className="text-xs text-muted-foreground">{u.email}</div>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {u.id_1para1
+                                                    ? <span className="font-mono text-sm text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded px-2 py-0.5">{u.id_1para1}</span>
+                                                    : <span className="text-xs text-gray-500 italic">Não informado</span>
+                                                }
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                                                {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                            </td>
+                                            <td className="px-6 py-3 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1"
+                                                        onClick={() => handleApprove(u.id, u.email)}
+                                                        disabled={actionLoading === u.id}
+                                                    >
+                                                        {actionLoading === u.id
+                                                            ? <><RefreshCw className="h-3 w-3 animate-spin" /> Aprovando...</>
+                                                            : <><UserCheck className="h-3 w-3" /> Aprovar</>
+                                                        }
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                                                        onClick={() => handleDelete(u.id, u.email)}
+                                                        disabled={actionLoading === u.id}
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Ativar Trial Manualmente */}
             <Card className="border-slate-800">
                 <CardHeader className="pb-3">
