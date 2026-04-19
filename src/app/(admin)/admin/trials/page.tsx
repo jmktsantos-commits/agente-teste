@@ -111,18 +111,53 @@ export default function TrialsAdminPage() {
             .order("trial_activated_at", { ascending: false })
             .limit(200)
 
-        // Buscar pendentes = status 'pending' OU plan='trial' sem trial ativado (trigger não atualizado)
-        const { data: pending } = await supabase
+        // ── Busca pendentes: 2 queries simples + merge ──────────────────────
+        // 1) status = 'pending' explícito
+        const { data: byStatus } = await supabase
             .from("profiles")
-            .select("id, email, full_name, created_at, status, id_1para1")
-            .or("status.eq.pending,and(plan.eq.trial,trial_expires_at.is.null)")
+            .select("id, email, full_name, created_at, status")
+            .eq("status", "pending")
             .not("role", "in", '("admin","affiliate")')
             .order("created_at", { ascending: false })
 
+        // 2) plan='trial' SEM trial ativado (trigger criou com status='active')
+        const { data: byPlan } = await supabase
+            .from("profiles")
+            .select("id, email, full_name, created_at, status")
+            .eq("plan", "trial")
+            .is("trial_expires_at", null)
+            .not("role", "in", '("admin","affiliate")')
+            .order("created_at", { ascending: false })
+
+        // Merge + deduplicar
+        const seen = new Set<string>()
+        const allPending: PendingUser[] = []
+        for (const u of [...(byStatus || []), ...(byPlan || [])]) {
+            if (!seen.has(u.id)) {
+                seen.add(u.id)
+                allPending.push({ ...u, id_1para1: null })
+            }
+        }
+
+        // Tentar buscar id_1para1 (pode não existir se SQL não foi rodado)
+        if (allPending.length > 0) {
+            try {
+                const { data: extras } = await supabase
+                    .from("profiles")
+                    .select("id, id_1para1")
+                    .in("id", allPending.map(u => u.id))
+                if (extras) {
+                    const m = Object.fromEntries(extras.map((e: { id: string; id_1para1: string | null }) => [e.id, e.id_1para1]))
+                    allPending.forEach(u => { u.id_1para1 = m[u.id] ?? null })
+                }
+            } catch { /* coluna ainda não existe — ignora */ }
+        }
+
+        // Excluir quem já tem trial aprovado/ativo
+        const activeIds = new Set((users || []).filter(u => u.trial_expires_at).map(u => u.id))
+
         setTrialUsers(users || [])
-        // Desduplicar: excluir da lista de pendentes quem já tem trial ativo
-        const activeTrialIds = new Set((users || []).filter(u => u.trial_expires_at).map(u => u.id))
-        setPendingUsers((pending || []).filter(u => !activeTrialIds.has(u.id)))
+        setPendingUsers(allPending.filter(u => !activeIds.has(u.id)))
         setLoading(false)
         setRefreshing(false)
     }, [])
