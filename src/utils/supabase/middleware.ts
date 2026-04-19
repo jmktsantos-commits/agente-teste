@@ -80,22 +80,26 @@ export async function updateSession(request: NextRequest) {
         const isAdmin = profile.role === 'admin' || profile.role === 'affiliate'
         if (isAdmin) return response
 
-        // Conta pendente de aprovação → redirecionar para tela de espera
-        if (profile.status === 'pending') {
+        // ── REGRA DE APROVACÃO ──────────────────────────────────────────────────
+        // Bloqueia usuários não aprovados de DUAS formas:
+        //  1) status='pending' (API set-pending funcionou)
+        //  2) trial_expires_at IS NULL + sem plano pago (trigger criou com status='active' mas admin ainda não aprovou)
+        const isPaid = profile.plan && PAID_PLANS.includes(profile.plan)
+        const hasActiveTrial = !!profile.trial_expires_at
+        const isPendingApproval = profile.status === 'pending' || (!hasActiveTrial && !isPaid)
+
+        if (isPendingApproval) {
             const url = request.nextUrl.clone()
             url.pathname = '/aguardando-aprovacao'
             return NextResponse.redirect(url)
         }
 
         // Planos pagos: acesso irrestrito
-        const isPaid = profile.plan && PAID_PLANS.includes(profile.plan)
         if (isPaid) return response
 
         const now = new Date()
 
-        // ── REGRA PRINCIPAL: qualquer usuário sem plano pago que tenha
-        //    trial_expires_at definido e expirado → BLOQUEADO.
-        //    Cobre: plan='trial', plan='free' (mudado após expiração), plan=null.
+        // Trial com data definida e expirado → BLOQUEADO
         if (profile.trial_expires_at) {
             const expiredAt = new Date(profile.trial_expires_at)
             if (expiredAt <= now) {
@@ -103,14 +107,6 @@ export async function updateSession(request: NextRequest) {
                 url.pathname = '/trial-expirado'
                 return NextResponse.redirect(url)
             }
-        }
-
-        // ── REGRA EXTRA: plan='trial' sem data de expiração (trial "congelado")
-        //    → bloqueia para forçar resolução administrativa
-        if (profile.plan === 'trial' && !profile.trial_expires_at) {
-            const url = request.nextUrl.clone()
-            url.pathname = '/trial-expirado'
-            return NextResponse.redirect(url)
         }
     }
 
