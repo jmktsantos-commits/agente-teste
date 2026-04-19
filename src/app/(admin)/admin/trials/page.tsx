@@ -73,6 +73,7 @@ interface PendingUser {
     full_name: string | null
     created_at: string
     status: string
+    id_1para1: string | null
 }
 
 export default function TrialsAdminPage() {
@@ -113,7 +114,7 @@ export default function TrialsAdminPage() {
         // Buscar pendentes = status 'pending' OU plan='trial' sem trial ativado (trigger não atualizado)
         const { data: pending } = await supabase
             .from("profiles")
-            .select("id, email, full_name, created_at, status")
+            .select("id, email, full_name, created_at, status, id_1para1")
             .or("status.eq.pending,and(plan.eq.trial,trial_expires_at.is.null)")
             .not("role", "in", '("admin","affiliate")')
             .order("created_at", { ascending: false })
@@ -494,6 +495,7 @@ export default function TrialsAdminPage() {
                                     <thead>
                                         <tr className="border-b border-slate-800 text-muted-foreground text-xs uppercase tracking-wider">
                                             <th className="text-left px-6 py-3">Usuário</th>
+                                            <th className="text-left px-4 py-3">ID 1PARA1</th>
                                             <th className="text-left px-4 py-3">Cadastrado em</th>
                                             <th className="text-right px-6 py-3">Ações</th>
                                         </tr>
@@ -504,6 +506,12 @@ export default function TrialsAdminPage() {
                                                 <td className="px-6 py-3">
                                                     <div className="font-medium text-white">{u.full_name || "Sem nome"}</div>
                                                     <div className="text-xs text-muted-foreground">{u.email}</div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {u.id_1para1
+                                                        ? <span className="font-mono text-sm text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded px-2 py-0.5">{u.id_1para1}</span>
+                                                        : <span className="text-xs text-gray-600 italic">Não informado</span>
+                                                    }
                                                 </td>
                                                 <td className="px-4 py-3 text-xs text-muted-foreground">
                                                     {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}

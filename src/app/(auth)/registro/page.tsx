@@ -19,6 +19,7 @@ function RegisterForm() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+    const [id1para1, setId1para1] = useState("")
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
@@ -69,6 +70,14 @@ function RegisterForm() {
             return
         }
 
+        // Validar ID 1PARA1
+        const id1Clean = id1para1.replace(/\D/g, '')
+        if (id1Clean.length !== 9) {
+            setError("O ID 1PARA1 deve conter exatamente 9 dígitos numéricos.")
+            setLoading(false)
+            return
+        }
+
         try {
             const redirectTo = `${window.location.origin}/aguardando-aprovacao`
 
@@ -84,6 +93,7 @@ function RegisterForm() {
                         phone: phone,
                         birth_date: birthDate,
                         btag: btag || undefined,
+                        id_1para1: id1Clean,   // ← salva no user_metadata
                     }
                 },
             })
@@ -96,8 +106,10 @@ function RegisterForm() {
                 await fetch('/api/auth/set-pending', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: data.session.user.id }),
+                    body: JSON.stringify({ userId: data.session.user.id, id1para1: id1Clean }),
                 })
+                // IMPORTANTE: deslogar imediatamente — só acessa após aprovacão do admin
+                await supabase.auth.signOut()
                 router.push('/aguardando-aprovacao')
                 return
             }
@@ -191,6 +203,36 @@ function RegisterForm() {
                                     onChange={(e) => setBirthDate(e.target.value)}
                                     required
                                 />
+                            </div>
+
+                            {/* ID 1PARA1 */}
+                            <div className="space-y-2">
+                                <Label htmlFor="id1para1">
+                                    ID 1PARA1 <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="id1para1"
+                                    type="text"
+                                    inputMode="numeric"
+                                    placeholder="000000000 (9 dígitos)"
+                                    value={id1para1}
+                                    onChange={(e) => {
+                                        // Aceita apenas dígitos, máximo 9
+                                        const v = e.target.value.replace(/\D/g, '').slice(0, 9)
+                                        setId1para1(v)
+                                    }}
+                                    maxLength={9}
+                                    required
+                                    className={id1para1.length > 0 && id1para1.length !== 9 ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Seu ID da plataforma 1PARA1 — 9 dígitos numéricos.
+                                    {id1para1.length > 0 && (
+                                        <span className={id1para1.length === 9 ? 'text-emerald-500 ml-1' : 'text-red-400 ml-1'}>
+                                            {id1para1.length}/9
+                                        </span>
+                                    )}
+                                </p>
                             </div>
 
                             <div className="space-y-2">

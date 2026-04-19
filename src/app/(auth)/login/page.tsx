@@ -40,9 +40,18 @@ export default function LoginPage() {
             if (authData.user) {
                 const { data: profile } = await supabase
                     .from("profiles")
-                    .select("role")
+                    .select("role, status, trial_expires_at, plan")
                     .eq("id", authData.user.id)
                     .single()
+
+                // ✅ Bloquear login se conta pendente de aprovação
+                const isPending = profile?.status === 'pending' || (!profile?.trial_expires_at && profile?.plan === 'trial')
+                if (isPending && profile?.role !== 'admin' && profile?.role !== 'affiliate') {
+                    await supabase.auth.signOut()  // forcçar logout imediatamente
+                    setError('⏳ Sua conta ainda não foi aprovada pelo administrador. Aguarde o contato ou verifique sua mensagem de cadastro.')
+                    setLoading(false)
+                    return
+                }
 
                 if (profile?.role === "affiliate") router.push("/affiliate")
                 else if (profile?.role === "admin") router.push("/admin")

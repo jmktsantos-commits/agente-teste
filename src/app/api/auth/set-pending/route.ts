@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // e last_seen = null — independente do que o trigger fizer
 export async function POST(request: NextRequest) {
     try {
-        const { userId } = await request.json()
+        const { userId, id1para1 } = await request.json()
         if (!userId) return NextResponse.json({ error: 'userId obrigatório' }, { status: 400 })
 
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -28,14 +28,17 @@ export async function POST(request: NextRequest) {
             await new Promise(r => setTimeout(r, 300))
         }
 
-        // Força status=pending e last_seen=null
+        // Força status=pending, last_seen=null, e salva o ID 1PARA1
+        const updateData: Record<string, unknown> = {
+            status: 'pending',
+            last_seen: null,
+            plan: 'trial',
+        }
+        if (id1para1) updateData['id_1para1'] = id1para1
+
         const { error } = await supabase
             .from('profiles')
-            .update({
-                status: 'pending',
-                last_seen: null,
-                plan: 'trial',
-            })
+            .update(updateData)
             .eq('id', userId)
 
         if (error) throw error
