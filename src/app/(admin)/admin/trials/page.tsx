@@ -157,14 +157,15 @@ export default function TrialsAdminPage() {
 
     // ── Aprovar usuário pendente
     const handleApprove = async (userId: string, email: string) => {
-        if (!confirm(`Aprovar ${email} e ativar trial de 7 dias?`)) return
         setActionLoading(userId)
         try {
             await callAdminAction("approve_user", userId)
             showToast(`✅ ${email} aprovado! Trial de 7 dias ativado.`)
             await fetchData(true)
         } catch (e: unknown) {
-            showToast(`❌ Erro: ${e instanceof Error ? e.message : e}`)
+            const msg = e instanceof Error ? e.message : String(e)
+            alert(`❌ Erro ao aprovar ${email}:\n${msg}`)
+            showToast(`❌ Erro: ${msg}`)
         }
         setActionLoading(null)
     }
@@ -230,14 +231,14 @@ export default function TrialsAdminPage() {
     }
 
     const handleDelete = async (userId: string, email: string) => {
-        if (!confirm(`EXCLUIR o usuário ${email}? Esta ação não pode ser desfeita.`)) return
         setActionLoading(userId + "_delete")
         try {
             await callAdminAction("delete", userId)
             showToast(`🗑 Usuário ${email} excluído.`)
-            fetchData(true)
+            await fetchData(true)
         } catch (e: unknown) {
-            alert(`Erro ao excluir: ${e instanceof Error ? e.message : e}`)
+            const msg = e instanceof Error ? e.message : String(e)
+            alert(`❌ Erro ao excluir ${email}:\n${msg}`)
         }
         setActionLoading(null)
     }
@@ -459,7 +460,7 @@ export default function TrialsAdminPage() {
                                             size="sm"
                                             className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5 px-4"
                                             onClick={() => handleApprove(u.id, u.email)}
-                                            disabled={actionLoading === u.id}
+                                            disabled={actionLoading === u.id || actionLoading === u.id + '_delete'}
                                         >
                                             {actionLoading === u.id
                                                 ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Aprovando...</>
@@ -471,9 +472,12 @@ export default function TrialsAdminPage() {
                                             variant="outline"
                                             className="h-8 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 gap-1.5"
                                             onClick={() => handleDelete(u.id, u.email)}
-                                            disabled={actionLoading === u.id}
+                                            disabled={actionLoading === u.id || actionLoading === u.id + '_delete'}
                                         >
-                                            <Trash2 className="h-3.5 w-3.5" /> Recusar
+                                            {actionLoading === u.id + '_delete'
+                                                ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Recusando...</>
+                                                : <><Trash2 className="h-3.5 w-3.5" /> Recusar</>
+                                            }
                                         </Button>
                                     </div>
                                 </div>
