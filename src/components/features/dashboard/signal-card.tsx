@@ -348,13 +348,13 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                     } else if (platform === 'esportivabet') {
                                         url = "https://esportiva.bet.br/games/spribe/aviator"
                                     } else {
-                                        url = "https://affiliates.bravo.bet.br/links/?accounts=%2A&register=%2A&btag=1989135_l350155__"
+                                        url = "https://1pra1.bet.br/Jean"
                                     }
                                     window.open(url, '_blank')
                                 }}
                             >
                                 <Rocket className="mr-2 h-4 md:h-5 w-4 md:w-5" />
-                                ABRIR {platform === 'superbet' ? 'SUPERBET' : platform === 'esportivabet' ? 'ESPORTIVABET' : 'BRAVOBET'}
+                                ABRIR {platform === 'superbet' ? 'SUPERBET' : platform === 'esportivabet' ? 'ESPORTIVABET' : '1PARA1 BET'}
                             </Button>
                         </div>
 
