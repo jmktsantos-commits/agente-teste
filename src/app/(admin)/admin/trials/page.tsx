@@ -71,9 +71,16 @@ interface PendingUser {
     id: string
     email: string
     full_name: string | null
-    created_at: string
-    status: string
+    first_name: string | null
+    last_name: string | null
+    phone: string | null
+    birth_date: string | null
     id_1para1: string | null
+    btag: string | null
+    status: string
+    plan: string | null
+    created_at: string
+    last_sign_in: string | null
 }
 
 export default function TrialsAdminPage() {
@@ -112,42 +119,24 @@ export default function TrialsAdminPage() {
             .order("trial_activated_at", { ascending: false })
             .limit(200)
 
-        // ── Busca pendentes: TODOS os não-admin sem trial ativo ──────────────
-        // Esta query intencionalmente ampla captura qualquer cadastro novo
-        // independente do que o trigger setou em plan/status
-        const { data: candidatos } = await supabase
-            .from("profiles")
-            .select("id, email, full_name, created_at, status, plan")
-            .is("trial_expires_at", null)
-            .not("role", "in", '("admin","affiliate")')
-            .order("created_at", { ascending: false })
-            .limit(500)
-
-        const allPending: PendingUser[] = (candidatos || []).map(u => ({
-            id: u.id,
-            email: u.email,
-            full_name: u.full_name,
-            created_at: u.created_at,
-            status: u.status,
-            id_1para1: null,
-        }))
-
-        // Tentar buscar id_1para1 (pode não existir se SQL ainda não foi rodado)
-        if (allPending.length > 0) {
-            try {
-                const { data: extras } = await supabase
-                    .from("profiles")
-                    .select("id, id_1para1")
-                    .in("id", allPending.map(u => u.id))
-                if (extras) {
-                    const m = Object.fromEntries(extras.map((e: { id: string; id_1para1: string | null }) => [e.id, e.id_1para1]))
-                    allPending.forEach(u => { u.id_1para1 = m[u.id] ?? null })
-                }
-            } catch { /* coluna ainda não existe — ignora */ }
+        // Buscar pendentes via API com todos os dados (inclui metadados do auth)
+        try {
+            const res = await fetch('/api/admin/pending-users')
+            if (res.ok) {
+                const json = await res.json()
+                setPendingUsers(json.users || [])
+            }
+        } catch {
+            // fallback: busca simples sem metadados
+            const { data: candidatos } = await supabase
+                .from('profiles')
+                .select('id, email, full_name, created_at, status, plan, id_1para1')
+                .is('trial_expires_at', null)
+                .not('role', 'in', '("admin","affiliate")')
+                .order('created_at', { ascending: false })
+                .limit(200)
+            setPendingUsers((candidatos || []).map(u => ({ ...u, phone: null, birth_date: null, first_name: null, last_name: null, btag: null, last_sign_in: null })))
         }
-
-        setTrialUsers(users || [])
-        setPendingUsers(allPending)
         setLoading(false)
         setRefreshing(false)
     }, [])
@@ -437,69 +426,98 @@ export default function TrialsAdminPage() {
                                 </CardTitle>
                             </div>
                             <CardDescription className="text-xs text-yellow-500/70">
-                                Aprove para ativar o trial de 7 dias
+                                Verifique os dados e aprove para ativar o trial de 7 dias
                             </CardDescription>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b border-yellow-500/20 text-yellow-500/60 text-xs uppercase tracking-wider">
-                                        <th className="text-left px-6 py-3">Usuário</th>
-                                        <th className="text-left px-4 py-3">ID 1PARA1</th>
-                                        <th className="text-left px-4 py-3">Cadastrado em</th>
-                                        <th className="text-right px-6 py-3">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-yellow-500/10">
-                                    {pendingUsers.map(u => (
-                                        <tr key={u.id} className="transition-colors hover:bg-yellow-500/5">
-                                            <td className="px-6 py-3">
-                                                <div className="font-medium text-white">{u.full_name || "Sem nome"}</div>
-                                                <div className="text-xs text-muted-foreground">{u.email}</div>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {u.id_1para1
-                                                    ? <span className="font-mono text-sm text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded px-2 py-0.5">{u.id_1para1}</span>
-                                                    : <span className="text-xs text-gray-500 italic">Não informado</span>
-                                                }
-                                            </td>
-                                            <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                                                {new Date(u.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                                            </td>
-                                            <td className="px-6 py-3 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-7 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1"
-                                                        onClick={() => handleApprove(u.id, u.email)}
-                                                        disabled={actionLoading === u.id}
-                                                    >
-                                                        {actionLoading === u.id
-                                                            ? <><RefreshCw className="h-3 w-3 animate-spin" /> Aprovando...</>
-                                                            : <><UserCheck className="h-3 w-3" /> Aprovar</>
-                                                        }
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        className="h-7 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
-                                                        onClick={() => handleDelete(u.id, u.email)}
-                                                        disabled={actionLoading === u.id}
-                                                    >
-                                                        <Trash2 className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <CardContent className="pt-0 pb-4 px-4 flex flex-col gap-4">
+                        {pendingUsers.map(u => (
+                            <div key={u.id} className="rounded-xl border border-yellow-500/20 bg-slate-900/60 p-4">
+                                {/* Header do card */}
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-semibold text-white text-base">
+                                                {u.full_name || `${u.first_name || ''} ${u.last_name || ''}`.trim() || '— Sem nome —'}
+                                            </p>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium
+                                                ${u.status === 'pending'
+                                                    ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                                                    : 'bg-slate-700 text-slate-300 border border-slate-600'
+                                                }`}>
+                                                {u.status === 'pending' ? '⏳ Pendente' : u.status}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-blue-400 mt-0.5">{u.email}</p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            Cadastro: {new Date(u.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    </div>
+                                    {/* Ações */}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <Button
+                                            size="sm"
+                                            className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white gap-1.5 px-4"
+                                            onClick={() => handleApprove(u.id, u.email)}
+                                            disabled={actionLoading === u.id}
+                                        >
+                                            {actionLoading === u.id
+                                                ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Aprovando...</>
+                                                : <><UserCheck className="h-3.5 w-3.5" /> ✅ Aprovar</>
+                                            }
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10 gap-1.5"
+                                            onClick={() => handleDelete(u.id, u.email)}
+                                            disabled={actionLoading === u.id}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" /> Recusar
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Grid de dados do usuário */}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-2">
+                                    {/* ID 1PARA1 */}
+                                    <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 px-3 py-2">
+                                        <p className="text-xs text-purple-400/70 uppercase tracking-wide mb-1">ID 1PARA1</p>
+                                        {u.id_1para1
+                                            ? <p className="font-mono font-bold text-purple-200 text-sm tracking-wider">{u.id_1para1}</p>
+                                            : <p className="text-xs text-gray-500 italic">Não informado</p>
+                                        }
+                                    </div>
+
+                                    {/* Telefone */}
+                                    <div className="rounded-lg bg-slate-800/80 border border-slate-700/40 px-3 py-2">
+                                        <p className="text-xs text-slate-400/70 uppercase tracking-wide mb-1">Telefone</p>
+                                        <p className="text-sm text-slate-200">{u.phone || <span className="text-xs text-gray-500 italic">Não informado</span>}</p>
+                                    </div>
+
+                                    {/* Data de Nascimento */}
+                                    <div className="rounded-lg bg-slate-800/80 border border-slate-700/40 px-3 py-2">
+                                        <p className="text-xs text-slate-400/70 uppercase tracking-wide mb-1">Nascimento</p>
+                                        <p className="text-sm text-slate-200">
+                                            {u.birth_date
+                                                ? new Date(u.birth_date).toLocaleDateString('pt-BR')
+                                                : <span className="text-xs text-gray-500 italic">Não informado</span>
+                                            }
+                                        </p>
+                                    </div>
+
+                                    {/* Parceiro / BTAG */}
+                                    <div className="rounded-lg bg-slate-800/80 border border-slate-700/40 px-3 py-2">
+                                        <p className="text-xs text-slate-400/70 uppercase tracking-wide mb-1">Código Parceiro</p>
+                                        <p className="text-sm text-slate-200">{u.btag || <span className="text-xs text-gray-500 italic">Direto</span>}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </CardContent>
                 </Card>
             )}
+
 
             {/* Ativar Trial Manualmente */}
             <Card className="border-slate-800">
