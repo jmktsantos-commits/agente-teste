@@ -12,7 +12,8 @@ import {
     GraduationCap,
     LifeBuoy,
     Rocket,
-    Radio
+    Radio,
+    Settings2
 } from "lucide-react"
 
 const routes = [
@@ -125,18 +126,19 @@ export function Sidebar({ className }: SidebarProps) {
 
 // Itens fixos da barra mobile — exatamente os que devem aparecer
 const mobileRoutes = [
-    { label: "Início",     icon: History,       href: "/historico" },
-    { label: "Histórico",  icon: LayoutDashboard, href: "/dashboard" },
-    { label: "Cassino",    icon: Gamepad2,      href: "/cassino" },
-    { label: "Aprender",   icon: GraduationCap, href: "/aprender" },
-    { label: "Live",       icon: Radio,         href: "/live" },
+    { label: "Início",       icon: History,        href: "/historico" },
+    { label: "Histórico",    icon: LayoutDashboard, href: "/dashboard" },
+    { label: "Cassino",      icon: Gamepad2,       href: "/cassino" },
+    { label: "Aprender",     icon: GraduationCap,  href: "/aprender" },
+    { label: "Live",         icon: Radio,          href: "/live" },
+    { label: "Gestão",       icon: Settings2,      href: "/banca" },
 ]
 
 export function MobileNav() {
     const pathname = usePathname()
 
     return (
-        <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background/95 backdrop-blur-xl border-t border-border flex justify-around items-center md:hidden px-2 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
+        <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-background/95 backdrop-blur-xl border-t border-border flex justify-around items-center md:hidden px-1 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
             {mobileRoutes.map((route) => {
                 const isActive = pathname === route.href
                 return (
@@ -144,15 +146,15 @@ export function MobileNav() {
                         key={route.href}
                         href={route.href}
                         className={cn(
-                            "flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-200 relative",
+                            "flex flex-col items-center justify-center flex-1 h-full space-y-0.5 transition-all duration-200 relative",
                             isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         )}
                     >
                         {isActive && (
-                            <div className="absolute -top-[1px] w-8 h-[2px] bg-primary rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]" />
+                            <div className="absolute -top-[1px] w-6 h-[2px] bg-primary rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]" />
                         )}
-                        <route.icon className={cn("h-5 w-5", isActive && "animate-pulse")} />
-                        <span className="text-[9px] font-medium">{route.label}</span>
+                        <route.icon className={cn("h-[18px] w-[18px]", isActive && "animate-pulse")} />
+                        <span className="text-[9px] font-medium leading-none">{route.label}</span>
                     </Link>
                 )
             })}
