@@ -79,6 +79,52 @@ export default function AguardandoAprovacaoPage() {
                             </div>
                         )}
 
+                        {/* Banner WhatsApp Group */}
+                        <a
+                            href="https://chat.whatsapp.com/HzkpsDSGTQ26m4mSUUm8W4?mode=gi_t"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group block w-full"
+                        >
+                            <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/80 via-emerald-900/60 to-emerald-950/80 p-4 transition-all duration-300 hover:border-emerald-400/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.15)]">
+                                {/* Glow background */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-emerald-400/10 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                                <div className="relative flex items-center gap-4">
+                                    {/* WhatsApp icon */}
+                                    <div className="relative shrink-0">
+                                        <div className="absolute inset-0 rounded-full bg-emerald-500/30 animate-ping" />
+                                        <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/40 text-2xl">
+                                            💬
+                                        </div>
+                                    </div>
+
+                                    {/* Text */}
+                                    <div className="flex-1 text-left">
+                                        <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-400 mb-0.5">
+                                            ✨ Grupo Exclusivo
+                                        </p>
+                                        <p className="text-sm font-semibold text-white leading-snug">
+                                            Enquanto aguarda a aprovação, entre no nosso Grupo <span className="text-emerald-400">Black de Velas Altas</span>!
+                                        </p>
+                                    </div>
+
+                                    {/* Arrow */}
+                                    <div className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 group-hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/30">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                {/* Bottom label */}
+                                <div className="relative mt-3 flex items-center gap-2 border-t border-emerald-500/20 pt-2.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="text-[11px] text-emerald-400/80 font-medium">Toque para entrar no grupo agora</span>
+                                </div>
+                            </div>
+                        </a>
+
                         {/* Status card */}
                         <div className="bg-[#111118] border border-white/10 rounded-2xl p-5 space-y-4 text-left">
                             <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Próximos passos</p>
