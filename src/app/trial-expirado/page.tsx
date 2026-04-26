@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react"
 
-const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/9g65d6vkig15fsu7"
-const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/jtot6ozwz20sgnrm"
-const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK || "https://sandbox.asaas.com/c/wdj5s6op557z9txk"
+const CHECKOUT_URL = "https://lastlink.com/p/CF3B071BA/checkout-payment/"
+const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || CHECKOUT_URL
+const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL   || CHECKOUT_URL
+const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK   || CHECKOUT_URL
 const WHATSAPP_NUMBER = "5515981092500"
 
 export default function TrialExpiradoPage() {
