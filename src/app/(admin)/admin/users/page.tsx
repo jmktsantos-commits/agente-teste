@@ -20,12 +20,46 @@ import {
     Loader2, MoreHorizontal, Search, Trash, Shield, ShieldOff,
     Ban, CheckCircle, Eye, Users, UserPlus, X, Check
 } from "lucide-react"
-import { formatDistanceToNow, format } from "date-fns"
+import { formatDistanceToNow, format, differenceInHours, differenceInDays, isPast } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 function isOnline(lastSeen: string | null): boolean {
     if (!lastSeen) return false
     return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
+}
+
+// Helper: exibe status do trial com cor
+function TrialBadge({ trialExpiresAt }: { trialExpiresAt: string | null }) {
+    if (!trialExpiresAt) {
+        return <span className="text-xs text-muted-foreground">—</span>
+    }
+    const expiry = new Date(trialExpiresAt)
+    const expired = isPast(expiry)
+    const daysLeft = differenceInDays(expiry, new Date())
+    const hoursLeft = differenceInHours(expiry, new Date())
+
+    if (expired) {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                Expirado
+            </span>
+        )
+    }
+    if (daysLeft >= 1) {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {daysLeft}d restante{daysLeft !== 1 ? 's' : ''}
+            </span>
+        )
+    }
+    return (
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+            {hoursLeft}h restante{hoursLeft !== 1 ? 's' : ''}
+        </span>
+    )
 }
 
 // ── Componente: Formulário de criação de usuário ──────────────────────────────
@@ -378,6 +412,7 @@ export default function UsersPage() {
                             <TableHead>Usuário</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Role</TableHead>
+                            <TableHead>Trial</TableHead>
                             <TableHead>Visto por último</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
@@ -436,6 +471,9 @@ export default function UsersPage() {
                                             {user.role === 'user' && !user.btag && (
                                                 <Badge className="bg-zinc-500/10 text-zinc-400 border-zinc-500/20">Direto</Badge>
                                             )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <TrialBadge trialExpiresAt={user.trial_expires_at ?? null} />
                                         </TableCell>
                                         <TableCell className="text-sm text-muted-foreground">
                                             {online
@@ -557,6 +595,34 @@ export default function UsersPage() {
                                     <p className="text-sm font-mono font-semibold mt-1 text-orange-500">{selectedUser.btag}</p>
                                 </div>
                             )}
+
+                            {/* Trial Info */}
+                            {selectedUser.trial_expires_at && (
+                                <div className={`rounded-lg border p-3 ${
+                                    isPast(new Date(selectedUser.trial_expires_at))
+                                        ? 'border-red-500/20 bg-red-500/5'
+                                        : differenceInDays(new Date(selectedUser.trial_expires_at), new Date()) < 2
+                                            ? 'border-yellow-500/20 bg-yellow-500/5'
+                                            : 'border-emerald-500/20 bg-emerald-500/5'
+                                }`}>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Free Trial</p>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <p className={`text-sm font-semibold ${
+                                            isPast(new Date(selectedUser.trial_expires_at))
+                                                ? 'text-red-400'
+                                                : differenceInDays(new Date(selectedUser.trial_expires_at), new Date()) < 2
+                                                    ? 'text-yellow-400'
+                                                    : 'text-emerald-400'
+                                        }`}>
+                                            <TrialBadge trialExpiresAt={selectedUser.trial_expires_at} />
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Expira: {format(new Date(selectedUser.trial_expires_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="rounded-lg border p-3">
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">ID do Usuário</p>
                                 <p className="text-xs font-mono mt-1 text-muted-foreground break-all">{selectedUser.id}</p>
