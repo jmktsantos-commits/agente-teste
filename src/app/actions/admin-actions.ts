@@ -27,7 +27,7 @@ const supabaseAdmin = createClient(
     }
 )
 
-export async function getUsers(page = 1, limit = 10, search = "") {
+export async function getUsers(page = 1, limit = 50, search = "") {
     try {
         let query = supabaseAdmin
             .from("profiles")
@@ -39,16 +39,37 @@ export async function getUsers(page = 1, limit = 10, search = "") {
             query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`)
         }
 
-        const { data, count, error } = await query
-
+        const { data: profiles, count, error } = await query
         if (error) throw error
+        if (!profiles || profiles.length === 0) return { users: [], total: 0 }
 
-        return { users: data, total: count || 0 }
+        // Enriquecer com user_metadata do auth (onde id_1para1, phone, birth_date ficam)
+        const enriched = await Promise.all(
+            profiles.map(async (profile) => {
+                // Só busca do auth se algum campo importante estiver vazio no profile
+                if (profile.id_1para1 && profile.phone) return profile
+                try {
+                    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(profile.id)
+                    const meta = authData?.user?.user_metadata || {}
+                    return {
+                        ...profile,
+                        id_1para1: profile.id_1para1 || meta.id_1para1 || null,
+                        phone:     profile.phone     || meta.phone      || null,
+                        birth_date: profile.birth_date || meta.birth_date || null,
+                    }
+                } catch {
+                    return profile
+                }
+            })
+        )
+
+        return { users: enriched, total: count || 0 }
     } catch (error) {
         console.error("Error fetching users:", error)
         return { users: [], total: 0 }
     }
 }
+
 
 export async function getOnlineUsers() {
     try {
