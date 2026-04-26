@@ -28,6 +28,26 @@ function isOnline(lastSeen: string | null): boolean {
     return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
 }
 
+// Live countdown HH:MM:SS para trial < 24h
+function TrialCountdown({ expiresAt }: { expiresAt: string }) {
+    const [, forceUpdate] = useState(0)
+    useEffect(() => {
+        const t = setInterval(() => forceUpdate(n => n + 1), 1000)
+        return () => clearInterval(t)
+    }, [])
+    const diff = new Date(expiresAt).getTime() - Date.now()
+    if (diff <= 0) return <span className="text-red-400 font-mono font-bold">Expirado</span>
+    const h = Math.floor(diff / 3600000).toString().padStart(2, '0')
+    const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0')
+    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0')
+    return (
+        <span className="inline-flex items-center gap-1.5 font-mono font-bold text-yellow-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-ping shrink-0" />
+            {h}:{m}:{s}
+        </span>
+    )
+}
+
 // Helper: exibe status do trial com cor
 function TrialBadge({ trialExpiresAt }: { trialExpiresAt: string | null }) {
     if (!trialExpiresAt) {
@@ -35,8 +55,8 @@ function TrialBadge({ trialExpiresAt }: { trialExpiresAt: string | null }) {
     }
     const expiry = new Date(trialExpiresAt)
     const expired = isPast(expiry)
-    const daysLeft = differenceInDays(expiry, new Date())
     const hoursLeft = differenceInHours(expiry, new Date())
+    const daysLeft  = differenceInDays(expiry, new Date())
 
     if (expired) {
         return (
@@ -46,18 +66,14 @@ function TrialBadge({ trialExpiresAt }: { trialExpiresAt: string | null }) {
             </span>
         )
     }
-    if (daysLeft >= 1) {
-        return (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {daysLeft}d restante{daysLeft !== 1 ? 's' : ''}
-            </span>
-        )
+    // < 24h → contador ao vivo
+    if (hoursLeft < 24) {
+        return <TrialCountdown expiresAt={trialExpiresAt} />
     }
     return (
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
-            {hoursLeft}h restante{hoursLeft !== 1 ? 's' : ''}
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            {daysLeft}d restante{daysLeft !== 1 ? 's' : ''}
         </span>
     )
 }
@@ -526,15 +542,17 @@ export default function UsersPage() {
 
             {/* User Details Dialog */}
             <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Detalhes do Usuário</DialogTitle>
                         <DialogDescription>Informações completas do cadastro.</DialogDescription>
                     </DialogHeader>
                     {selectedUser && (
                         <div className="space-y-4">
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
+
+                            {/* Avatar + nome */}
+                            <div className="flex items-center gap-4 p-3 rounded-xl bg-muted/30 border">
+                                <div className="relative shrink-0">
                                     <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-lg font-bold">
                                         {(selectedUser.full_name || selectedUser.email || "?").charAt(0).toUpperCase()}
                                     </div>
@@ -545,88 +563,156 @@ export default function UsersPage() {
                                         </span>
                                     )}
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">{selectedUser.full_name || "Sem nome"}</h3>
-                                    <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                                <div className="min-w-0">
+                                    <h3 className="font-semibold text-base truncate">{selectedUser.full_name || "Sem nome"}</h3>
+                                    <p className="text-sm text-muted-foreground truncate">{selectedUser.email}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Badge className={selectedUser.status === 'active'
+                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] px-1.5 py-0'
+                                            : 'bg-red-500/10 text-red-400 border-red-500/20 text-[10px] px-1.5 py-0'}>
+                                            {selectedUser.status === 'active' ? 'Ativo' : 'Banido'}
+                                        </Badge>
+                                        {isOnline(selectedUser.last_seen) && (
+                                            <span className="text-[10px] text-green-500 font-medium">● Online agora</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Status</p>
-                                    <p className="text-sm font-semibold mt-1">
-                                        {isOnline(selectedUser.last_seen)
-                                            ? <span className="text-green-500">🟢 Online</span>
-                                            : selectedUser.status === 'active'
-                                                ? <span>Ativo (Offline)</span>
-                                                : <span className="text-red-500">Banido</span>
-                                        }
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tipo</p>
-                                    <p className="text-sm font-semibold mt-1">
-                                        {selectedUser.role === 'admin' && '🛡️ Admin'}
-                                        {selectedUser.role === 'affiliate' && '🤝 Afiliado'}
-                                        {selectedUser.role === 'user' && selectedUser.btag && <span className="text-orange-500">🔗 Lead Afiliado</span>}
-                                        {selectedUser.role === 'user' && !selectedUser.btag && '👤 Direto'}
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Cadastro</p>
-                                    <p className="text-sm font-semibold mt-1">
-                                        {selectedUser.created_at ? format(new Date(selectedUser.created_at), "dd/MM/yyyy", { locale: ptBR }) : '-'}
-                                    </p>
-                                </div>
-                                <div className="rounded-lg border p-3">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Último Acesso</p>
-                                    <p className="text-sm font-semibold mt-1">
-                                        {isOnline(selectedUser.last_seen)
-                                            ? <span className="text-green-500">Agora</span>
-                                            : selectedUser.last_seen
-                                                ? formatDistanceToNow(new Date(selectedUser.last_seen), { addSuffix: true, locale: ptBR })
-                                                : '-'
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                            {selectedUser.btag && (
-                                <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Veio pelo Afiliado</p>
-                                    <p className="text-sm font-mono font-semibold mt-1 text-orange-500">{selectedUser.btag}</p>
-                                </div>
-                            )}
 
-                            {/* Trial Info */}
+                            {/* ─── Linha 1: Info de Contato ─── */}
+                            <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Contato</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Telefone</p>
+                                        <p className="text-sm font-semibold mt-1">{selectedUser.phone || <span className="text-muted-foreground">—</span>}</p>
+                                    </div>
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Data Nasc.</p>
+                                        <p className="text-sm font-semibold mt-1">
+                                            {selectedUser.birth_date
+                                                ? format(new Date(selectedUser.birth_date + 'T12:00:00'), "dd/MM/yyyy", { locale: ptBR })
+                                                : <span className="text-muted-foreground">—</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ─── Linha 2: IDs e Plano ─── */}
+                            <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Plano & Identificação</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">ID 1PARA1</p>
+                                        <p className="text-sm font-bold mt-1 font-mono ">
+                                            {selectedUser.id_1para1
+                                                ? <span className="text-purple-400">{selectedUser.id_1para1}</span>
+                                                : <span className="text-muted-foreground">—</span>}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Plano</p>
+                                        <p className="text-sm font-semibold mt-1 capitalize">{selectedUser.plan || <span className="text-muted-foreground">—</span>}</p>
+                                    </div>
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Perfil</p>
+                                        <p className="text-sm font-semibold mt-1">
+                                            {selectedUser.role === 'admin' && '🛡️ Admin'}
+                                            {selectedUser.role === 'affiliate' && '🤝 Afiliado'}
+                                            {selectedUser.role === 'user' && selectedUser.btag && <span className="text-orange-500">🔗 Lead Afiliado</span>}
+                                            {selectedUser.role === 'user' && !selectedUser.btag && '👤 Direto'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Cadastrado em</p>
+                                        <p className="text-sm font-semibold mt-1">
+                                            {selectedUser.created_at
+                                                ? format(new Date(selectedUser.created_at), "dd/MM/yy HH:mm", { locale: ptBR })
+                                                : <span className="text-muted-foreground">—</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ─── Linha 3: Acesso ─── */}
+                            <div>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Acesso</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="rounded-lg border bg-card p-3">
+                                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Último Acesso</p>
+                                        <p className="text-sm font-semibold mt-1">
+                                            {isOnline(selectedUser.last_seen)
+                                                ? <span className="text-green-500">Agora</span>
+                                                : selectedUser.last_seen
+                                                    ? formatDistanceToNow(new Date(selectedUser.last_seen), { addSuffix: true, locale: ptBR })
+                                                    : <span className="text-muted-foreground">—</span>
+                                            }
+                                        </p>
+                                    </div>
+                                    {selectedUser.partner_ref && (
+                                        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Afiliado (btag)</p>
+                                            <p className="text-sm font-mono font-semibold mt-1 text-orange-400">{selectedUser.btag || selectedUser.partner_ref}</p>
+                                        </div>
+                                    )}
+                                    {!selectedUser.partner_ref && selectedUser.btag && (
+                                        <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3">
+                                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Veio pelo Afiliado</p>
+                                            <p className="text-sm font-mono font-semibold mt-1 text-orange-400">{selectedUser.btag}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ─── Trial ─── */}
                             {selectedUser.trial_expires_at && (
-                                <div className={`rounded-lg border p-3 ${
-                                    isPast(new Date(selectedUser.trial_expires_at))
-                                        ? 'border-red-500/20 bg-red-500/5'
-                                        : differenceInDays(new Date(selectedUser.trial_expires_at), new Date()) < 2
-                                            ? 'border-yellow-500/20 bg-yellow-500/5'
-                                            : 'border-emerald-500/20 bg-emerald-500/5'
-                                }`}>
-                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Free Trial</p>
-                                    <div className="flex items-center justify-between mt-1">
-                                        <p className={`text-sm font-semibold ${
-                                            isPast(new Date(selectedUser.trial_expires_at))
-                                                ? 'text-red-400'
-                                                : differenceInDays(new Date(selectedUser.trial_expires_at), new Date()) < 2
-                                                    ? 'text-yellow-400'
-                                                    : 'text-emerald-400'
-                                        }`}>
-                                            <TrialBadge trialExpiresAt={selectedUser.trial_expires_at} />
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            Expira: {format(new Date(selectedUser.trial_expires_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                                        </p>
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">Free Trial</p>
+                                    <div className={`rounded-xl border p-4 ${
+                                        isPast(new Date(selectedUser.trial_expires_at))
+                                            ? 'border-red-500/30 bg-red-500/5'
+                                            : differenceInHours(new Date(selectedUser.trial_expires_at), new Date()) < 24
+                                                ? 'border-yellow-500/30 bg-yellow-500/5'
+                                                : 'border-emerald-500/30 bg-emerald-500/5'
+                                    }`}>
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Tempo Restante</p>
+                                                <div className="mt-1 text-base font-bold">
+                                                    <TrialBadge trialExpiresAt={selectedUser.trial_expires_at} />
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Expira em</p>
+                                                <p className="text-sm font-semibold mt-1">
+                                                    {format(new Date(selectedUser.trial_expires_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {selectedUser.trial_activated_at && (
+                                            <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-2 text-xs">
+                                                <div>
+                                                    <p className="text-muted-foreground">Ativado em</p>
+                                                    <p className="font-medium">{format(new Date(selectedUser.trial_activated_at), "dd/MM/yy HH:mm", { locale: ptBR })}</p>
+                                                </div>
+                                                {selectedUser.trial_activated_by && (
+                                                    <div>
+                                                        <p className="text-muted-foreground">Aprovado por</p>
+                                                        <p className="font-mono text-purple-400 truncate">{selectedUser.trial_activated_by.slice(0, 8)}…</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
 
-                            <div className="rounded-lg border p-3">
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">ID do Usuário</p>
-                                <p className="text-xs font-mono mt-1 text-muted-foreground break-all">{selectedUser.id}</p>
+                            {/* ─── ID Técnico ─── */}
+                            <div className="rounded-lg border bg-muted/20 p-3">
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">ID do Usuário (UUID)</p>
+                                <p className="text-xs font-mono mt-1 text-muted-foreground break-all select-all">{selectedUser.id}</p>
                             </div>
+
                         </div>
                     )}
                 </DialogContent>
