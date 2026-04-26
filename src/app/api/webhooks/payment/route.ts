@@ -52,16 +52,25 @@ function isPaymentConfirmed(event: string): boolean {
 }
 
 // ── Validação de token ─────────────────────────────────────────────────────────
-function isAuthorized(req: NextRequest): boolean {
-    if (!WEBHOOK_SECRET) return true
+function isAuthorized(req: NextRequest, bodyToken?: string): boolean {
+    if (!WEBHOOK_SECRET) return true  // sem segredo configurado = aceita tudo
     const tokens = [
+        // Lastlink variants (token pode vir em qualquer um desses)
+        req.headers.get("x-lastlink-token"),
+        req.headers.get("x-lastlink-signature"),
+        req.headers.get("x-token"),
+        req.headers.get("x-webhook-token"),
+        req.headers.get("x-api-key"),
+        // Asaas / genérico
         req.headers.get("asaas-access-token"),
         req.headers.get("x-kiwify-token"),
-        req.headers.get("x-webhook-token"),
-        req.headers.get("x-lastlink-signature"),
         req.headers.get("authorization")?.replace("Bearer ", ""),
+        // Query params
         req.nextUrl.searchParams.get("token"),
         req.nextUrl.searchParams.get("accessToken"),
+        req.nextUrl.searchParams.get("secret"),
+        // Token dentro do body (alguns gateways fazem isso)
+        bodyToken,
     ]
     return tokens.some(t => t === WEBHOOK_SECRET)
 }
@@ -175,11 +184,18 @@ export async function POST(req: NextRequest) {
         const body = await req.json() as Record<string, unknown>
         const event: string = String(body?.event ?? body?.Event ?? body?.order_status ?? "unknown")
 
-        console.log(`[webhook] ===== EVENTO: "${event}" =====`)
-        console.log(`[webhook] Payload: ${JSON.stringify(body).slice(0, 800)}`)
+        // Log TODOS os headers para descobrir qual o Lastlink usa
+        const allHeaders: Record<string, string> = {}
+        req.headers.forEach((value, key) => { allHeaders[key] = value })
+        console.log(`[webhook] ===== EVENTO: "${event}" ====`)
+        console.log(`[webhook] HEADERS: ${JSON.stringify(allHeaders)}`)
+        console.log(`[webhook] BODY: ${JSON.stringify(body).slice(0, 1000)}`)
 
-        if (!isAuthorized(req)) {
-            console.error("[webhook] Token inválido")
+        // Passa também o token que pode vir dentro do body (body.token, body.secret)
+        const bodyToken = body?.token as string | undefined ?? body?.secret as string | undefined
+
+        if (!isAuthorized(req, bodyToken)) {
+            console.error("[webhook] Token inválido — headers:", JSON.stringify(allHeaders))
             return NextResponse.json({ ok: true, skipped: true, reason: "unauthorized" })
         }
 
