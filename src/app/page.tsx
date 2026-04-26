@@ -9,9 +9,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || "https://sandbox.asaas.com/c/9g65d6vkig15fsu7"
-const CHECKOUT_ANUAL = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL || "https://sandbox.asaas.com/c/jtot6ozwz20sgnrm"
-const CHECKOUT_BLACK = process.env.NEXT_PUBLIC_CHECKOUT_BLACK || "https://sandbox.asaas.com/c/wdj5s6op557z9txk"
+const CHECKOUT_URL = "https://lastlink.com/p/CF3B071BA/checkout-payment/"
+const CHECKOUT_STARTER = process.env.NEXT_PUBLIC_CHECKOUT_MENSAL || CHECKOUT_URL
+const CHECKOUT_ANUAL   = process.env.NEXT_PUBLIC_CHECKOUT_ANUAL   || CHECKOUT_URL
 
 // ── Countdown Timer ────────────────────────────────────────────────────────────
 function Countdown() {
@@ -356,11 +356,11 @@ export default function LandingPage() {
                   </span>
                   <p className="text-slate-300 text-xs mb-5">Sinais no WhatsApp + melhor custo-benefício</p>
                   <div className="flex items-end gap-2">
-                    <span className="text-5xl font-black text-white leading-none">R$397</span>
+                    <span className="text-5xl font-black text-white leading-none">R$297</span>
                     <span className="text-slate-400 mb-1.5 text-sm">/ano</span>
                   </div>
-                  <p className="text-green-400 text-sm font-bold mt-2">Equivale a apenas R$33,08 por mês</p>
-                  <p className="text-xs text-slate-500 mt-1">Economize R$167 vs. plano mensal</p>
+                  <p className="text-green-400 text-sm font-bold mt-2">Equivale a apenas R$24,75 por mês</p>
+                  <p className="text-xs text-slate-500 mt-1">Economize R$267 vs. plano mensal</p>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
@@ -392,56 +392,7 @@ export default function LandingPage() {
                 </p>
               </div>
             </div>
-
-            {/* ── BLACK — A Elite (âncora de percepção de valor) ── */}
-            <div className="relative w-full md:w-[29%] bg-gradient-to-br from-zinc-950 via-neutral-900 to-zinc-950 border border-amber-500/50 rounded-2xl p-7 flex flex-col overflow-hidden">
-              {/* Gold shimmer top */}
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-amber-400/80 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-900/10 via-transparent to-transparent pointer-events-none" />
-
-              {/* Badge ELITE */}
-              <div className="absolute top-5 right-5">
-                <span className="bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[10px] font-black px-2.5 py-1 rounded-full">
-                  ◆ ELITE
-                </span>
-              </div>
-
-              <div className="mb-6 relative z-10">
-                <span className="inline-block bg-amber-500/20 text-amber-300 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-4">
-                  BLACK — A Elite
-                </span>
-                <p className="text-slate-400 text-xs mb-5">Mentoria exclusiva + acesso total</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-4xl font-black text-white">R$997</span>
-                  <span className="text-slate-400 mb-1.5 text-sm">/ano</span>
-                </div>
-                <p className="text-amber-400 text-xs font-medium mt-2">~R$83,08 por mês</p>
-              </div>
-
-              <ul className="space-y-3 mb-8 flex-1 relative z-10">
-                {[
-                  { text: "Acesso Total à Plataforma", gold: false },
-                  { text: "Histórico e Análise de Velas Altas", gold: false },
-                  { text: "Gestão de Banca Inteligente", gold: false },
-                  { text: "📚 Curso Avançado Aviator", gold: false },
-                  { text: "🟢 Grupo VIP Exclusivo no WhatsApp", gold: false },
-                  { text: "Suporte Direto com Especialista", gold: false },
-                  { text: "⭐ Mentoria Particular (6 Encontros/Ano)", gold: true },
-                ].map(({ text, gold }) => (
-                  <li key={text} className={cn("flex items-center gap-2.5 text-sm", gold ? "text-amber-200 font-semibold" : "text-slate-300")}>
-                    <CheckCircle className={cn("w-4 h-4 shrink-0", gold ? "text-amber-400" : "text-amber-400/60")} /> {text}
-                  </li>
-                ))}
-              </ul>
-
-              <a href={CHECKOUT_BLACK} target="_blank" rel="noopener noreferrer" className="relative z-10">
-                <button className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-black font-black text-sm hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg shadow-amber-900/30 flex items-center justify-center gap-2">
-                  Quero o Black Elite
-                </button>
-              </a>
-            </div>
-
-          </div>{/* fim dos 3 cards */}
+          </div>{/* fim dos 2 cards */}
 
           {/* Guarantee */}
           <div className="mt-12 flex items-center justify-center gap-4 bg-green-500/5 border border-green-500/20 rounded-2xl p-6">
