@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getUsers, updateUserRole, updateUserStatus, deleteUser } from "@/app/actions/admin-actions"
+import { getUsers, updateUserRole, updateUserStatus, deleteUser, grantAccess } from "@/app/actions/admin-actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -18,7 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import {
     Loader2, MoreHorizontal, Search, Trash, Shield, ShieldOff,
-    Ban, CheckCircle, Eye, Users, UserPlus, X, Check
+    Ban, CheckCircle, Eye, Users, UserPlus, X, Check, Unlock, Gift, Star, CreditCard
 } from "lucide-react"
 import { formatDistanceToNow, format, differenceInHours, differenceInDays, isPast } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -75,6 +75,196 @@ function TrialBadge({ trialExpiresAt }: { trialExpiresAt: string | null }) {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {daysLeft}d restante{daysLeft !== 1 ? 's' : ''}
         </span>
+    )
+}
+
+// ── Modal: Liberar Acesso ─────────────────────────────────────────────────────
+function GrantAccessModal({
+    user,
+    open,
+    onClose,
+    onSuccess,
+}: {
+    user: any
+    open: boolean
+    onClose: () => void
+    onSuccess: () => void
+}) {
+    const [mode, setMode] = useState<'plan' | 'courtesy'>('plan')
+    const [plan, setPlan] = useState<'starter' | 'anual'>('anual')
+    const [days, setDays] = useState(7)
+    const [note, setNote] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [result, setResult] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+
+    const handleGrant = async () => {
+        setLoading(true)
+        setResult(null)
+        const res = await grantAccess(user.id, mode, { plan, days, note })
+        setLoading(false)
+        if (res.success) {
+            setResult({ type: 'success', msg: mode === 'plan' ? `Plano ${plan} ativado com sucesso! ✅` : `Cortesia de ${days} dia(s) concedida! ✅` })
+            setTimeout(() => { onSuccess(); onClose(); }, 1800)
+        } else {
+            setResult({ type: 'error', msg: res.error ?? 'Erro ao liberar acesso.' })
+        }
+    }
+
+    if (!user) return null
+
+    return (
+        <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Unlock className="h-5 w-5 text-emerald-400" />
+                        Liberar Acesso
+                    </DialogTitle>
+                    <DialogDescription>
+                        <span className="font-medium text-foreground">{user.full_name || user.email}</span>
+                        {' '}— escolha o tipo de liberação:
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-5 pt-2">
+                    {/* Seletor de modo */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={() => setMode('plan')}
+                            className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all ${
+                                mode === 'plan'
+                                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                                    : 'border-muted bg-card text-muted-foreground hover:border-emerald-500/40'
+                            }`}
+                        >
+                            <CreditCard className="h-5 w-5" />
+                            Plano Pago
+                            <span className="text-[10px] opacity-70">Remove trial</span>
+                        </button>
+                        <button
+                            onClick={() => setMode('courtesy')}
+                            className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-all ${
+                                mode === 'courtesy'
+                                    ? 'border-purple-500 bg-purple-500/10 text-purple-400'
+                                    : 'border-muted bg-card text-muted-foreground hover:border-purple-500/40'
+                            }`}
+                        >
+                            <Gift className="h-5 w-5" />
+                            Cortesia
+                            <span className="text-[10px] opacity-70">Dias extras</span>
+                        </button>
+                    </div>
+
+                    {/* Opções do modo */}
+                    {mode === 'plan' ? (
+                        <div className="space-y-3">
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Selecione o plano</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    onClick={() => setPlan('starter')}
+                                    className={`flex items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
+                                        plan === 'starter'
+                                            ? 'border-blue-500 bg-blue-500/10 text-blue-400 font-semibold'
+                                            : 'border-muted bg-card text-muted-foreground hover:border-blue-400/40'
+                                    }`}
+                                >
+                                    <Star className="h-4 w-4" /> Starter
+                                </button>
+                                <button
+                                    onClick={() => setPlan('anual')}
+                                    className={`flex items-center gap-2 rounded-lg border p-3 text-sm transition-all ${
+                                        plan === 'anual'
+                                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 font-semibold'
+                                            : 'border-muted bg-card text-muted-foreground hover:border-emerald-400/40'
+                                    }`}
+                                >
+                                    <Star className="h-4 w-4 fill-current" /> Anual
+                                </button>
+                            </div>
+                            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-400">
+                                ✅ Status → <strong>Ativo</strong> · Plano → <strong className="capitalize">{plan}</strong> · Trial removido
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">Dias de cortesia</p>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        value={days}
+                                        onChange={(e) => setDays(Math.max(1, Math.min(365, Number(e.target.value))))}
+                                        className="w-24 text-center font-bold text-lg"
+                                    />
+                                    <div className="flex gap-1">
+                                        {[3, 7, 14, 30].map(d => (
+                                            <button
+                                                key={d}
+                                                onClick={() => setDays(d)}
+                                                className={`px-2.5 py-1.5 rounded-md text-xs font-medium border transition-all ${
+                                                    days === d
+                                                        ? 'border-purple-500 bg-purple-500/20 text-purple-400'
+                                                        : 'border-muted bg-card text-muted-foreground hover:border-purple-400/40'
+                                                }`}
+                                            >
+                                                {d}d
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1.5">Nota interna (opcional)</p>
+                                <Input
+                                    placeholder="Ex: Fechou pelo WhatsApp, aguardando pagamento..."
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                />
+                            </div>
+                            <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 p-3 text-xs text-purple-400">
+                                🎁 Trial estendido por <strong>{days} dia(s)</strong> a partir de agora
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Feedback */}
+                    {result && (
+                        <div className={`rounded-lg border p-3 text-sm font-medium ${
+                            result.type === 'success'
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                                : 'border-red-500/30 bg-red-500/10 text-red-400'
+                        }`}>
+                            {result.msg}
+                        </div>
+                    )}
+
+                    {/* Botões */}
+                    <div className="flex gap-2 pt-1">
+                        <Button variant="outline" className="flex-1" onClick={onClose} disabled={loading}>
+                            Cancelar
+                        </Button>
+                        <Button
+                            className={`flex-1 font-semibold ${
+                                mode === 'plan'
+                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                    : 'bg-purple-600 hover:bg-purple-500 text-white'
+                            }`}
+                            onClick={handleGrant}
+                            disabled={loading}
+                        >
+                            {loading
+                                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processando...</>
+                                : mode === 'plan'
+                                    ? <><Unlock className="mr-2 h-4 w-4" />Ativar Plano {plan.charAt(0).toUpperCase() + plan.slice(1)}</>
+                                    : <><Gift className="mr-2 h-4 w-4" />Conceder {days}d de Cortesia</>
+                            }
+                        </Button>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
     )
 }
 
@@ -351,6 +541,7 @@ export default function UsersPage() {
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState("")
     const [selectedUser, setSelectedUser] = useState<any>(null)
+    const [grantUser, setGrantUser] = useState<any>(null)
 
     const loadUsers = async () => {
         setLoading(true)
@@ -514,6 +705,14 @@ export default function UsersPage() {
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => navigator.clipboard.writeText(user.id)}>
                                                         Copiar ID
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        className="text-emerald-500 focus:text-emerald-400 focus:bg-emerald-500/10"
+                                                        onClick={() => setGrantUser(user)}
+                                                    >
+                                                        <Unlock className="mr-2 h-4 w-4" />
+                                                        Liberar Acesso / Cortesia
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => handleAction('role', user.id, user.role === 'admin' ? 'user' : 'admin')}>
@@ -713,10 +912,30 @@ export default function UsersPage() {
                                 <p className="text-xs font-mono mt-1 text-muted-foreground break-all select-all">{selectedUser.id}</p>
                             </div>
 
+                            {/* ─── Ação: Liberar Acesso ─── */}
+                            <Button
+                                className="w-full bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-semibold shadow-lg shadow-emerald-500/20"
+                                onClick={() => {
+                                    setGrantUser(selectedUser)
+                                    setSelectedUser(null)
+                                }}
+                            >
+                                <Unlock className="mr-2 h-4 w-4" />
+                                Liberar Acesso / Conceder Cortesia
+                            </Button>
+
                         </div>
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Modal: Liberar Acesso */}
+            <GrantAccessModal
+                user={grantUser}
+                open={!!grantUser}
+                onClose={() => setGrantUser(null)}
+                onSuccess={() => { loadUsers(); setGrantUser(null) }}
+            />
         </div>
     )
 }

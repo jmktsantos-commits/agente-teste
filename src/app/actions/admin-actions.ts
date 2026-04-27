@@ -287,3 +287,64 @@ export async function deleteUser(userId: string) {
         return { success: false, error: error?.message ?? String(error) }
     }
 }
+
+// ── Liberar acesso pago OU cortesia (dias extras de trial) ─────────────────────
+export async function grantAccess(
+    userId: string,
+    mode: 'plan' | 'courtesy',
+    options: {
+        plan?: 'starter' | 'anual'   // para mode='plan'
+        days?: number                 // para mode='courtesy'
+        note?: string                 // nota interna opcional
+    }
+) {
+    try {
+        let updateData: Record<string, unknown>
+
+        if (mode === 'plan') {
+            // ── Plano pago: remove restrição de trial, ativa plano ──────────────
+            const plan = options.plan ?? 'anual'
+            updateData = {
+                plan,
+                status: 'active',
+                trial_expires_at: null,   // sem limite de data
+            }
+        } else {
+            // ── Cortesia: estende (ou cria) trial por N dias ────────────────────
+            const days = Math.max(1, Math.min(options.days ?? 7, 365))
+            const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+            updateData = {
+                plan: 'trial',
+                status: 'active',
+                trial_expires_at: expiresAt,
+            }
+        }
+
+        const { error } = await supabaseAdmin
+            .from('profiles')
+            .update(updateData)
+            .eq('id', userId)
+
+        if (error) throw error
+
+        // Garante que o usuário não está banido no Auth
+        await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: 'none' })
+
+        // Atualiza o lead no CRM se existir
+        const label = mode === 'plan'
+            ? `Acesso pago liberado pelo admin. Plano: ${options.plan ?? 'anual'}.`
+            : `Cortesia concedida pelo admin: ${options.days ?? 7} dias.${options.note ? ' Nota: ' + options.note : ''}`
+
+        await supabaseAdmin
+            .from('crm_leads')
+            .update({ status: 'converted', notes: label })
+            .eq('user_id', userId)
+
+        console.log(`[grantAccess] ${mode} → userId=${userId} | ${JSON.stringify(updateData)}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('Error in grantAccess:', error)
+        return { success: false, error: error?.message ?? String(error) }
+    }
+}
+
