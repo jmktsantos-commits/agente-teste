@@ -380,7 +380,7 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
                                     <div className="flex justify-between items-start mb-2">
                                         <span className={`text-xs font-mono flex items-center gap-1 ${isFirst ? 'text-green-400 font-bold' : 'text-slate-500'}`}>
                                             <Clock className="w-3 h-3" />
-                                            {new Date(pred.created_at || "").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(pred.created_at || "").toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })}
                                             {isFirst && <span className="ml-2 bg-green-500/20 text-green-400 text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider">Atual</span>}
                                         </span>
                                     </div>
