@@ -21,7 +21,7 @@ const https = require('https');
 
 // ===== CONFIG =====
 const CONFIG = {
-    interval: 10 * 1000, // 10 segundos — atualizacao quasi-instantanea
+    interval: 30 * 1000, // 30 segundos
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wufnvueiappspptdphux.supabase.co',
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY || Buffer.from('c2Jfc2VjcmV0X296SUMtOGpDMHd6MjJCNnpRRUpyQUFfTUs2c3JIaFE=', 'base64').toString(),
     platforms: [
@@ -30,8 +30,17 @@ const CONFIG = {
         { name: 'superbet', url: 'https://www.tipminer.com/br/historico/betou/aviator' },
     ],
     maxResults: 20,
-    browserRestartAfter: 100, // Restart browser a cada 100 ciclos (~50 min)
+    navTimeout: 45000,   // 45s para carregar pagina
+    browserRestartAfter: 50, // Restart browser a cada 50 ciclos (~25 min)
 };
+
+const USER_AGENTS = [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+];
+function randomUA() { return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]; }
 
 const runOnce = process.argv.includes('--once');
 let browser = null;
@@ -90,22 +99,35 @@ async function ensureBrowser() {
     log('🚀 Iniciando browser...');
     browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-blink-features=AutomationControlled',
+            '--window-size=1366,768',
+        ],
     });
     page = await browser.newPage();
-    await page.setViewport({ width: 1280, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36');
+    await page.setViewport({ width: 1366, height: 768 });
+    await page.setUserAgent(randomUA());
+    // Remove webdriver fingerprint
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+    });
     log('✅ Browser pronto');
 }
 
 // ===== SCRAPE ONE PLATFORM =====
 async function scrapePlatform(platform) {
+    // Rotate user agent each request
+    await page.setUserAgent(randomUA());
     try {
-        await page.goto(platform.url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await page.goto(platform.url, { waitUntil: 'domcontentloaded', timeout: CONFIG.navTimeout });
 
         // Esperar os botoes de resultado
         try {
-            await page.waitForSelector('button.cell--aviator', { timeout: 15000 });
+            await page.waitForSelector('button.cell--aviator', { timeout: 20000 });
         } catch (e) {
             // Fallback: tentar regex no texto
             log(`⏳ ${platform.name}: Sem button.cell--aviator — tentando texto...`);

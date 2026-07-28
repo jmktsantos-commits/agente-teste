@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 export default function CRMSettingsPage() {
     return (
         <div className="flex h-[400px] w-full items-center justify-center flex-col gap-4 border rounded-lg bg-muted/20">
