@@ -1,20 +1,14 @@
 "use client"
 
-import { useState } from "react"
 import { History, BarChart2 } from "lucide-react"
 import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { RecentHistoryTable } from "@/components/features/dashboard/recent-history"
 import { StatsGrid } from "@/components/features/dashboard/stats-grid"
 import type { Platform } from "@/lib/prediction-engine"
 
-const PLATFORMS: { value: Platform; label: string }[] = [
-    { value: "bravobet", label: "BravoBet" },
-    { value: "superbet", label: "Superbet" },
-    { value: "esportivabet", label: "EsportivaBet" },
-]
 
 export default function HistoricoPage() {
-    const [selectedPlatform, setSelectedPlatform] = useState<Platform>("bravobet")
+    const selectedPlatform: Platform = "bravobet"
 
     return (
         <div className="flex flex-col gap-6">
@@ -32,22 +26,6 @@ export default function HistoricoPage() {
                     </div>
                 </div>
 
-                {/* Platform Selector */}
-                <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-900 border border-white/5">
-                    {PLATFORMS.map((p) => (
-                        <button
-                            key={p.value}
-                            onClick={() => setSelectedPlatform(p.value)}
-                            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
-                                selectedPlatform === p.value
-                                    ? "bg-violet-600 text-white shadow-md shadow-violet-500/30"
-                                    : "text-muted-foreground hover:text-white hover:bg-white/5"
-                            }`}
-                        >
-                            {p.label}
-                        </button>
-                    ))}
-                </div>
             </div>
 
             {/* Stats Grid */}
