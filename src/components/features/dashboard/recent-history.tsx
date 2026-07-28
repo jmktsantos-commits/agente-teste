@@ -131,7 +131,7 @@ export function RecentHistoryTable({ selectedPlatform }: RecentHistoryTableProps
             <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-bold flex flex-wrap items-center gap-2">
                     <History className="w-5 h-5 text-slate-400 shrink-0" />
-                    <span>Histórico - {selectedPlatform === 'bravobet' ? '1PARA1' : selectedPlatform === 'esportivabet' ? 'EsportivaBet' : 'Superbet'}</span>
+                    <span>Histórico - {selectedPlatform === 'bravobet' ? 'BravoBet' : selectedPlatform === 'esportivabet' ? 'EsportivaBet' : 'Superbet'}</span>
 
                     {/* Status Realtime */}
                     <div className="ml-auto flex items-center gap-2">

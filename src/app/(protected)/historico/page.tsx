@@ -8,7 +8,7 @@ import { StatsGrid } from "@/components/features/dashboard/stats-grid"
 import type { Platform } from "@/lib/prediction-engine"
 
 const PLATFORMS: { value: Platform; label: string }[] = [
-    { value: "bravobet", label: "1PARA1" },
+    { value: "bravobet", label: "BravoBet" },
     { value: "superbet", label: "Superbet" },
     { value: "esportivabet", label: "EsportivaBet" },
 ]
