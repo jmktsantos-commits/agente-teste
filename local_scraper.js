@@ -13,8 +13,8 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const PLATFORMS = [
-    { name: 'bravobet', url: 'https://www.tipminer.com/br/historico/bravobet/aviator' },
-    { name: 'superbet', url: 'https://www.tipminer.com/br/historico/betou/aviator' }
+    { name: 'bravobet', url: 'https://www.tipminer.com/br/cassinos/bravobet/aviator' },
+    { name: 'superbet', url: 'https://www.tipminer.com/br/cassinos/betou/aviator' }
 ];
 
 async function scrapePlatform(browser, platform) {

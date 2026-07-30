@@ -7,30 +7,75 @@ export const maxDuration = 60
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+// API direta do TipMiner (mais confiável que scraping HTML)
+// URL base: https://api.core.public.tipminer.com/v1/crash/rounds/{gameId}/history
 const PLATFORMS = [
-    { name: 'bravobet',     url: 'https://www.tipminer.com/br/historico/bravobet/aviator' },
-    { name: 'esportivabet', url: 'https://www.tipminer.com/br/historico/sortenabet/aviator' },
-    { name: 'superbet',     url: 'https://www.tipminer.com/br/historico/betou/aviator' },
+    {
+        name: 'bravobet',
+        gameId: 'dddfce2b-42dc-4fd5-afd8-a5ee0ef36f89',
+        // URL atualizada: /br/cassinos/bravobet/aviator (era /br/historico/bravobet/aviator)
+        tipminerUrl: 'https://www.tipminer.com/br/cassinos/bravobet/aviator',
+    },
+    {
+        name: 'esportivabet',
+        gameId: null, // UUID não confirmado — usar fallback HTML
+        tipminerUrl: 'https://www.tipminer.com/br/cassinos/sortenabet/aviator',
+    },
+    {
+        name: 'superbet',
+        gameId: null, // Usar fallback de scraping HTML se não tiver gameId
+        tipminerUrl: 'https://www.tipminer.com/br/cassinos/betou/aviator',
+    },
 ]
 
-// Parse multipliers + times from TipMiner HTML
+const TIPMINER_API_BASE = 'https://api.core.public.tipminer.com/v1/crash/rounds'
+const ROUNDS_LIMIT = 200
+
+// ===== FETCH VIA API DIRETA DO TIPMINER =====
+async function fetchFromTipMinerAPI(gameId: string): Promise<{ multiplier: number; round_time: string }[]> {
+    const url = `${TIPMINER_API_BASE}/${gameId}/history?limit=${ROUNDS_LIMIT}&timezone=America%2FSao_Paulo`
+    const res = await fetch(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Referer': 'https://www.tipminer.com/',
+            'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(15000),
+        next: { revalidate: 0 },
+    })
+
+    if (!res.ok) throw new Error(`API retornou ${res.status} para gameId ${gameId}`)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any[] = await res.json()
+
+    if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('Resposta da API vazia ou inválida')
+    }
+
+    return data
+        .filter(r => typeof r.result === 'number' && r.result > 0 && r.instant)
+        .map(r => ({
+            multiplier: r.result,
+            round_time: r.instant, // já é ISO 8601 UTC
+        }))
+}
+
+// ===== FALLBACK: PARSE HTML (para plataformas sem gameId) =====
 function parseHtml(html: string): { multiplier: number; gameTime: string | null }[] {
     const results: { multiplier: number; gameTime: string | null }[] = []
 
-    // TipMiner renders data inline in __NEXT_DATA__ or as text in cells
     // Strategy 1: Extract from __NEXT_DATA__ JSON
     const nextDataMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)
     if (nextDataMatch) {
         try {
             const json = JSON.parse(nextDataMatch[1])
-            // Walk the JSON looking for arrays with multiplier/value fields
             const found = extractFromJson(json)
             if (found.length > 0) return found
         } catch { /* fall through */ }
     }
 
-    // Strategy 2: Regex on visible text — matches "2,34x" or "10.00x" patterns near times
-    // TipMiner uses patterns like: 2,34x ... 14:23:45
+    // Strategy 2: Regex em texto visível — padrões "2,34x" ou "10.00x" perto de horários
     const cellRegex = /(\d+)[,.](\d+)x[^]*?(\d{2}:\d{2}:\d{2})/g
     let m: RegExpExecArray | null
     while ((m = cellRegex.exec(html)) !== null && results.length < 50) {
@@ -42,7 +87,7 @@ function parseHtml(html: string): { multiplier: number; gameTime: string | null 
 
     if (results.length > 0) return results
 
-    // Strategy 3: Just multipliers (no time)
+    // Strategy 3: Apenas multiplicadores (sem horário)
     const multRegex = /(\d+)[,.](\d+)x/g
     while ((m = multRegex.exec(html)) !== null && results.length < 50) {
         const multiplier = parseFloat(`${m[1]}.${m[2]}`)
@@ -62,9 +107,8 @@ function extractFromJson(obj: any, depth = 0): { multiplier: number; gameTime: s
     if (Array.isArray(obj)) {
         for (const item of obj) {
             if (item && typeof item === 'object') {
-                // Look for objects with multiplier/value/crash_point fields
                 const mult = item.multiplier ?? item.value ?? item.crash_point ?? item.result ?? item.odd
-                const time = item.round_time ?? item.created_at ?? item.time ?? item.game_time ?? null
+                const time = item.round_time ?? item.created_at ?? item.time ?? item.game_time ?? item.instant ?? null
                 if (typeof mult === 'number' && mult > 0 && mult < 10000) {
                     results.push({ multiplier: mult, gameTime: time ? String(time).substring(11, 19) || null : null })
                 } else {
@@ -81,8 +125,8 @@ function extractFromJson(obj: any, depth = 0): { multiplier: number; gameTime: s
     return results
 }
 
-async function scrapePlatform(platform: { name: string; url: string }) {
-    const res = await fetch(platform.url, {
+async function scrapePlatformFallback(platform: { name: string; tipminerUrl: string }) {
+    const res = await fetch(platform.tipminerUrl, {
         headers: {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -92,17 +136,38 @@ async function scrapePlatform(platform: { name: string; url: string }) {
         next: { revalidate: 0 },
     })
 
-    if (!res.ok) throw new Error(`HTTP ${res.status} for ${platform.url}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status} para ${platform.tipminerUrl}`)
     const html = await res.text()
     return parseHtml(html)
 }
 
-async function saveToSupabase(platformName: string, records: { multiplier: number; gameTime: string | null }[]) {
+async function saveToSupabaseFromAPI(platformName: string, records: { multiplier: number; round_time: string }[]) {
+    if (records.length === 0) return 0
+
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/crash_history`, {
+        method: 'POST',
+        headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=ignore-duplicates,return=minimal',
+        },
+        body: JSON.stringify(
+            records.map(r => ({
+                multiplier: r.multiplier,
+                platform: platformName,
+                round_time: r.round_time,
+            }))
+        ),
+    })
+
+    return insertRes.ok ? records.length : 0
+}
+
+async function saveToSupabaseFromHtml(platformName: string, records: { multiplier: number; gameTime: string | null }[]) {
     if (records.length === 0) return 0
 
     const now = new Date()
-
-    // Fetch recent 60s to dedup
     const recentTime = new Date(now.getTime() - 60000).toISOString()
     const checkRes = await fetch(
         `${SUPABASE_URL}/rest/v1/crash_history?platform=eq.${platformName}&round_time=gte.${recentTime}&select=multiplier,round_time`,
@@ -162,17 +227,26 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const results: Record<string, { scraped: number; saved: number; error?: string }> = {}
+    const results: Record<string, { scraped: number; saved: number; method: string; error?: string }> = {}
     let totalSaved = 0
 
     for (const platform of PLATFORMS) {
         try {
-            const data = await scrapePlatform(platform)
-            const saved = await saveToSupabase(platform.name, data)
-            results[platform.name] = { scraped: data.length, saved }
-            totalSaved += saved
+            if (platform.gameId) {
+                // ✅ Método preferido: API direta do TipMiner
+                const data = await fetchFromTipMinerAPI(platform.gameId)
+                const saved = await saveToSupabaseFromAPI(platform.name, data)
+                results[platform.name] = { scraped: data.length, saved, method: 'api-direta' }
+                totalSaved += saved
+            } else {
+                // ⚠️ Fallback: scraping HTML (menos confiável)
+                const data = await scrapePlatformFallback(platform)
+                const saved = await saveToSupabaseFromHtml(platform.name, data)
+                results[platform.name] = { scraped: data.length, saved, method: 'html-scraping' }
+                totalSaved += saved
+            }
         } catch (err) {
-            results[platform.name] = { scraped: 0, saved: 0, error: String(err) }
+            results[platform.name] = { scraped: 0, saved: 0, method: 'error', error: String(err) }
         }
     }
 

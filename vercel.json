@@ -6,6 +6,10 @@
         {
             "path": "/api/cron/trial-notifications",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/scrape-crash",
+            "schedule": "*/2 * * * *"
         }
     ]
 }
