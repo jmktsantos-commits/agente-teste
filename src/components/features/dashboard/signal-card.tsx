@@ -160,53 +160,56 @@ export function SignalCard({ selectedPlatform }: SignalCardProps) {
         setLastPredictions(deduplicated)
     }
 
-    // Helper function to parse and fix malformed time formats
-    // Handles cases like "00:23:40" (should be "00:40") or "23:15" (correct format)
+    // Parse time strings from Claude/n8n format
+    // Handles: "⏰ HH:MM ± 1 min", "HH:MM +/- 1 min", "HH:MM:SS", "HH:MM"
     const parseTimeFormat = (timeStr: string): string => {
-        // Remove any "+ X min" suffix
-        const cleanTime = timeStr.replace(/\s*\+\s*\d+\s*min/gi, '').trim()
+        // 1. Remove emojis
+        let s = timeStr.replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{27FF}]/gu, '').trim()
 
-        // Check if it's in HH:MM:SS format (malformed)
-        const parts = cleanTime.split(':')
+        // 2. Detect if original has tolerance marker
+        const hasTolerance = /[±]|\+\/-/.test(timeStr)
 
+        // 3. Strip all tolerance text
+        s = s.replace(/\s*[±]\s*\d+\s*min/gi, '')
+             .replace(/\s*\+\/-\s*\d+\s*min/gi, '')
+             .replace(/\s*\+\s*\d+\s*min/gi, '')
+             .trim()
+
+        // 4. Handle HH:MM:SS (malformed) → extract HH:SS
+        const parts = s.split(':')
         if (parts.length === 3) {
-            // Format: HH:MM:SS - extract HH and SS as the actual time
-            const hour = parts[0]
-            const seconds = parts[2]
-            return `${hour}:${seconds}`
-        } else if (parts.length === 2) {
-            // Format: HH:MM - already correct
-            return cleanTime
+            s = `${parts[0].trim()}:${parts[2].trim()}`
         }
 
-        // Fallback: return as-is
-        return cleanTime
+        // 5. Re-add tolerance if original had it
+        if (hasTolerance && /^\d{1,2}:\d{2}$/.test(s)) {
+            return `${s} +/- 1 min`
+        }
+
+        return s
     }
 
-    // Helper to check if a time string (HH:MM) is in the future relative to now
+    // Helper to check if a time string is in the future relative to now
     const isTimeInFuture = (timeStr: string): boolean => {
         try {
+            // Extract just the HH:MM part (strip "+/- 1 min" and similar)
+            const match = timeStr.match(/(\d{1,2}):(\d{2})/)
+            if (!match) return true
+
+            const hours = parseInt(match[1])
+            const minutes = parseInt(match[2])
+
+            if (isNaN(hours) || isNaN(minutes)) return true
+
             const now = new Date()
-            const [hours, minutes] = timeStr.split(':').map(Number)
-
-            if (isNaN(hours) || isNaN(minutes)) return true // Keep if invalid format to be safe
-
             const target = new Date()
             target.setHours(hours, minutes, 0, 0)
 
-            // Handle day rollover edge case: 
-            // If now is 23:50 and target is 00:10, target (today 00:10) < now, but it means tomorrow.
-            // Assumption: Predictions are typically for the current or next hour.
-            // If target is significantly in the past (e.g. > 20 hours ago), assume it's for tomorrow.
-            // But usually we just want to filter times within the current session that passed.
-
-            // Simple check: if target is in the past by less than 12 hours, filter it out.
-            // If it's "in the past" by > 12 hours (e.g. target 00:10, now 23:50 -> 23h difference), treat as tomorrow (future).
-
             const diffMs = now.getTime() - target.getTime()
 
+            // If target is in the past by less than 12 hours, filter out
             if (diffMs > 0 && diffMs < 12 * 60 * 60 * 1000) {
-                return false // It's in the past (within last 12h)
+                return false
             }
 
             return true
