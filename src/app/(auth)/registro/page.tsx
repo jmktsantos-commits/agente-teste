@@ -70,10 +70,10 @@ function RegisterForm() {
             return
         }
 
-        // Validar ID 1PARA1
+        // Validar ID BravoBet
         const id1Clean = id1para1.replace(/\D/g, '')
         if (id1Clean.length !== 9) {
-            setError("O ID 1PARA1 deve conter exatamente 9 dígitos numéricos.")
+            setError("O ID BravoBet deve conter exatamente 9 dígitos numéricos.")
             setLoading(false)
             return
         }
@@ -137,9 +137,9 @@ function RegisterForm() {
                         Você foi indicado por um afiliado! 🎉
                     </div>
                 )}
-                {/* Banner 1PARA1 */}
+                {/* Banner BravoBet */}
                 <a
-                    href="https://1pra1.bet.br/Jean"
+                    href="https://go.aff.bravo.bet.br/l6imgxos?btag=000943_ADA5M"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mx-4 mt-4 flex items-center justify-between gap-3 rounded-xl border border-purple-500/40 bg-gradient-to-r from-purple-600/20 to-violet-600/10 px-4 py-3 text-sm transition-all hover:border-purple-400/60 hover:bg-purple-600/25 group"
@@ -148,7 +148,7 @@ function RegisterForm() {
                         <span className="text-2xl">🎰</span>
                         <div>
                             <p className="font-semibold text-purple-200 leading-tight">
-                                Ainda não tem cadastro na 1PARA1?
+                                Ainda não tem cadastro na BravoBet?
                             </p>
                             <p className="text-xs text-purple-300/80 mt-0.5">
                                 Cadastre-se agora e pegue seu <strong className="text-purple-200">ID de Acesso</strong>
@@ -156,7 +156,7 @@ function RegisterForm() {
                         </div>
                     </div>
                     <span className="shrink-0 text-xs font-bold text-white bg-purple-600 group-hover:bg-purple-500 rounded-lg px-3 py-1.5 transition-colors whitespace-nowrap">
-                        1PARA1 BET
+                        BRAVOBET
                     </span>
                 </a>
 
@@ -228,10 +228,10 @@ function RegisterForm() {
                                 />
                             </div>
 
-                            {/* ID 1PARA1 */}
+                            {/* ID BravoBet */}
                             <div className="space-y-2">
                                 <Label htmlFor="id1para1">
-                                    ID 1PARA1 <span className="text-red-500">*</span>
+                                    ID BravoBet <span className="text-red-500">*</span>
                                 </Label>
                                 <Input
                                     id="id1para1"
@@ -249,7 +249,7 @@ function RegisterForm() {
                                     className={id1para1.length > 0 && id1para1.length !== 9 ? 'border-red-500 focus-visible:ring-red-500' : ''}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Seu ID da plataforma 1PARA1 — 9 dígitos numéricos.
+                                    Seu ID da plataforma BravoBet — 9 dígitos numéricos.
                                     {id1para1.length > 0 && (
                                         <span className={id1para1.length === 9 ? 'text-emerald-500 ml-1' : 'text-red-400 ml-1'}>
                                             {id1para1.length}/9
@@ -307,6 +307,11 @@ function RegisterForm() {
                         </p>
                     </CardFooter>
                 )}
+                <div className="mx-4 mb-4 flex items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/5 px-3 py-2">
+                    <span className="text-xs font-bold text-red-500 text-center tracking-wide">
+                        ⚠️ PROIBIDO PARA MENOR DE 18 ANOS — JOGUE COM RESPONSABILIDADE
+                    </span>
+                </div>
             </Card>
         </div>
     )
